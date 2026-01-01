@@ -1,0 +1,241 @@
+.protocol-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.protocol-header {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.header-info h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.header-info p {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tab-switcher {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 10px;
+    margin-right: 8px;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: #aaa;
+}
+
+.tab-btn.active {
+    background: rgba(255, 223, 142, 0.1);
+    color: #ffdf8e;
+}
+
+.refresh-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.save-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffdf8e;
+    color: #000;
+    border: none;
+    padding: 0 20px;
+    height: 40px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(255, 223, 142, 0.2);
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 223, 142, 0.4);
+}
+
+.save-btn:disabled {
+    background: #444;
+    color: #888;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.save-btn.success {
+    background: #10b981;
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.save-btn.error {
+    background: #ef4444;
+    color: #fff;
+}
+
+.protocol-content {
+    flex: 1;
+    padding: 1.5rem;
+    overflow: hidden;
+    display: flex;
+}
+
+.editor-wrapper,
+.preview-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 10, 15, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.editor-toolbar,
+.preview-header {
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #666;
+}
+
+.hint,
+.file-hint {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    font-style: italic;
+    color: #444;
+}
+
+.warning-label {
+    color: #ff4757;
+}
+
+.protocol-textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 1.5rem;
+    color: #d1d1d1;
+    font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+}
+
+.prompt-content {
+    flex: 1;
+    padding: 2rem;
+    margin: 0;
+    color: #888;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.protocol-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #555;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

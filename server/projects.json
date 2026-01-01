@@ -1,0 +1,54 @@
+[
+  {
+    "id": 1,
+    "title": "Cosmos Clip",
+    "description": "Advanced clipboard manager with backup encryption and history tracking.",
+    "status": "Active",
+    "version": "1.2.2",
+    "tags": [
+      "Electron",
+      "React",
+      "Utility",
+      "Encryption"
+    ],
+    "path": "c:/Users/elois/OneDrive/Documents/GitHub/cosmos-clip",
+    "monitorUrl": "http://localhost:5678",
+    "loadCmd": "code c:/Users/elois/OneDrive/Documents/GitHub/cosmos-clip",
+    "departments": [
+      {
+        "name": "Core Systems",
+        "description": "Essential process management and IPC bridging."
+      }
+    ],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 2,
+    "title": "DevControl",
+    "description": "Mission control dashboard for managing development projects with AI-powered optimization and real-time monitoring.",
+    "status": "Active",
+    "version": "0.0.0",
+    "tags": [
+      "React",
+      "Node.js",
+      "Express",
+      "AI",
+      "Groq"
+    ],
+    "path": "c:/Users/elois/OneDrive/Documents/GitHub/DevControl",
+    "monitorUrl": "http://localhost:7777",
+    "departments": [
+      {
+        "name": "Frontend Layer",
+        "description": "React-based user interface components."
+      },
+      {
+        "name": "Backend API",
+        "description": "Express server with project management and AI integration."
+      }
+    ],
+    "docs": [],
+    "issues": []
+  }
+]
