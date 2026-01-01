@@ -25,37 +25,38 @@
 3. **System:** Maintain current stable state until new objectives are defined
 
 ## Strategic Context
-Voice interface is stable and functional. Currently transitioning from Phase 2 (Manager Integration) to Phase 3 (Execution Loop). 
+Voice interface is stable and functional. Currently in Phase 3 (Execution Loop), transitioning to Phase 4 (Project Features). Zero-Touch automation is live and verified.
 
 ## Architecture Log
-- **Manager-Agent Bridge:** Uses `AGENT_INSTRUCTIONS.md` as a one-way command buffer. Manager writes, Agent (Antigravity) reads.
-- **Context Injection:** `PROJECT_STATUS.md` is automatically prepended to the Groq Manager's system prompt to ensure total situational awareness.
-- **UI Architecture:** React frontend with CSS Variables for themes. Layout uses a 280px sidebar and flexible content area.
+- **Manager-Agent Bridge:** Uses `AGENT_INSTRUCTIONS.md` as a one-way command buffer.
+- **Context Injection:** `PROJECT_STATUS.md` is prepended to Groq Manager's system prompt.
+- **Autopilot Bridge:** Standalone daemon script pulses `Alt+Enter` to unblock agent prompts autonomously.
+- **GitHub Sync:** DevControl is now synchronized to `https://github.com/Viguru24/DevControl` and integrated into the local `repos-config.json` sync pool.
 
 ## Strategic Memory (Session Knowledge)
-- **Voice Preferences:** Louis prefers a specific German-English accent for the system output.
-- **UI Philosophy:** High-contrast, neon-midnight aesthetic. Fast response and micro-animations are prioritized.
-- **Workflow:** User consults Manager (Groq) for high-level strategy, then Agent (Antigravity) for execution.
-- **Zero-Touch Philosophy:** Priority on time-saving. "Accept All" prompts are handled by an automated 3-second heartbeat pulse (Alt+Enter) to minimize manual friction.
+- **Voice Preferences:** Louis prefers a German-English accent. Microsoft David/Zira are currently the only detected system voices.
+- **UI Philosophy:** High-contrast, neon-midnight aesthetic. Horizontal cutoff issue resolved 2026-01-01.
+- **Efficiency Goal:** "Zero-Touch" philosophy. Minimize manual clicks; prioritize background automation.
+- **Backups:** Full strategic backup completed 2026-01-01 (including GitHub push).
 
 ## owner information
 - **Name:** Louis de Souza
 - **Location:** Purley, London, UK
 - **Units:** Metric, Celsius
 - **Preferred Greeting:** "Louis"
-- **Communication Style:** Direct, professional, appreciates strategic foresight.
+- **Communication Style:** Direct, professional, values time-saving.
 
 ## Technical Debt & Backlog
-- [ ] Implement "C" trigger logic for automated instruction checking.
-- [ ] Optimize STT path for lower latency (Whisper options).
-- [ ] Verify horizontal scroll on wide code snippets in chat.
+- [x] Establish "Zero-Touch" autopilot loop.
+- [x] Full Project Backup and GitHub Sync.
+- [ ] Investigate additional "OneCore" voices for German-English accent.
+- [ ] Implement "Session Checkpoint" for automated status updates.
 
-## Prompt with an AI agent manager: 
--Start clear and specific—tell it exactly what you want, like "summarise this article in five bullet points."
--Break tasks into steps for complex stuff: Say "first research, then outline."
--Use examples if possible: Like "write like Hemingway but add modern slang."
--Role-play: E.g., act as a marketing expert.
--Chain prompts for refinement: "Revise this based on feedback."
--Keep language natural: Avoid fluff.
--Experiment and iterate.
+## Strategic Prompting Guidelines (Added by Louis)
+1. **Clear & Specific**: Give exact directives (e.g., "5 bullet points").
+2. **Step-by-Step**: Break complex tasks (e.g., "Research then Outline").
+3. **Contextual Examples**: Use stylistic references (e.g., "Write like Hemingway").
+4. **Role-Play**: Direct the AI to act as a specific expert.
+5. **Chain & Refine**: Iterate based on feedback.
+6. **Natural Language**: Keep it direct and fluff-free.
 

@@ -157,7 +157,7 @@ const Layout = ({ children, onNewProjectClick, currentView, setCurrentView, proj
                             title={`Auto-Continue: ${autoMode ? 'ON' : 'OFF'} (Ctrl+Shift+P)`}
                         >
                             {autoMode ? <Zap size={16} className="pulse-icon" /> : <Pause size={16} />}
-                            <span>{autoMode ? 'AUTO: ON' : 'AUTO: OFF'}</span>
+                            <span>{autoMode ? 'AUTO: ON (Zero-Touch)' : 'AUTO: OFF'}</span>
                         </button>
                     </div>
 
