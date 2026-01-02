@@ -35,7 +35,7 @@ const MonitorStatus = () => {
     useEffect(() => {
         let eventSource;
         try {
-            eventSource = new EventSource('http://localhost:3001/api/activity-stream');
+            eventSource = new EventSource('http://localhost:42424/api/activity-stream');
 
             eventSource.onopen = () => {
                 setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), msg: 'Connected to Neural Core Stream.' }]);

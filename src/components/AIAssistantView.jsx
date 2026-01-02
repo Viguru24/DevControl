@@ -14,7 +14,7 @@ const AIAssistantView = () => {
     const fetchArtifacts = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:3001/api/artifacts');
+            const response = await fetch('http://localhost:42424/api/artifacts');
             const data = await response.json();
             setArtifacts(data);
         } catch (err) {

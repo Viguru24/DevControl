@@ -8,15 +8,40 @@ import 'dotenv/config';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 
+import { createMasterBackup, listMasterBackups, restoreMasterBackup } from './master_backup.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECTS_FILE = path.join(__dirname, 'projects.json');
 
-// Default projects to use if file doesn't exist
+// Auto-mode state
+const STATE_FILE = path.join(__dirname, '..', 'scripts', 'auto_mode_state.json');
+let autoModeEnabled = false;
+let autopilotSessionActive = false;
+let sessionTimeout = null;
+
+// Load persisted state
+try {
+    if (fs.existsSync(STATE_FILE)) {
+        const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+        autoModeEnabled = state.enabled || false;
+        autopilotSessionActive = state.active || false;
+    }
+} catch (e) { }
+
+const saveAutoState = () => {
+    try {
+        fs.writeFileSync(STATE_FILE, JSON.stringify({
+            enabled: autoModeEnabled,
+            active: autopilotSessionActive
+        }));
+    } catch (e) { }
+};
+
 const defaultProjects = [
     {
         id: 1,
-        title: "Cosmos Clip",
+        title: "DevControl Dashboard",
         description: "Advanced clipboard manager with backup encryption and history tracking.",
         status: "Active",
         version: "1.2.2",
@@ -128,7 +153,7 @@ try {
     if (fs.existsSync(PROJECTS_FILE)) {
         const data = fs.readFileSync(PROJECTS_FILE, 'utf-8');
         projects = JSON.parse(data);
-        console.log(`Loaded ${projects.length} projects from ${PROJECTS_FILE}`);
+        console.log(`Loaded ${projects.length} projects from ${PROJECTS_FILE} `);
     } else {
         projects = defaultProjects;
         fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2));
@@ -149,16 +174,49 @@ const saveProjects = () => {
     }
 };
 
-// Auto-mode state (for Antigravity integration)
-let autoModeEnabled = false;
+// Auto-mode state handled at top
 
 
 // Configure Multer for audio uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+import { createBackup, listBackups, restoreBackup } from './backup_manager.js';
+
 const app = express();
-const port = 3001;
+const PORT = process.env.PORT || 42424;
+
+// GET /api/automation-code - Fetch the Zero-Touch logic for UI display
+app.get('/api/automation-code', (req, res) => {
+    try {
+        const vbsPath = path.join(__dirname, '..', 'scripts', 'trigger_continue.vbs');
+        const docPath = path.join(__dirname, '..', 'ZERO_TOUCH_PROTOCOL.md');
+
+        res.json({
+            vbs: fs.existsSync(vbsPath) ? fs.readFileSync(vbsPath, 'utf-8') : "' Script not found",
+            doc: fs.existsSync(docPath) ? fs.readFileSync(docPath, 'utf-8') : "Protocol documentation not found."
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// POST /api/trigger-autopilot - Manually fire the Ghost Finger
+app.post('/api/trigger-autopilot', (req, res) => {
+    try {
+        const vbsPath = path.join(__dirname, '..', 'scripts', 'trigger_continue.vbs');
+        if (fs.existsSync(vbsPath)) {
+            exec(`cscript.exe //Nologo "${vbsPath}"`, (err) => {
+                if (err) console.error("Autopilot pulse failed:", err);
+            });
+            res.json({ success: true, message: "Ghost Finger Pulsed" });
+        } else {
+            res.status(404).json({ error: "Script not found" });
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 
 app.use(cors());
 app.use(express.json());
@@ -433,19 +491,148 @@ app.post('/api/projects', (req, res) => {
     res.json({ success: true, project: newProject });
 });
 
+const startAutopilotSession = () => {
+    autopilotSessionActive = true;
+    saveAutoState();
+    if (sessionTimeout) clearTimeout(sessionTimeout);
+    sessionTimeout = setTimeout(() => {
+        autopilotSessionActive = false;
+        const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
+        if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath);
+    }, 600000);
+
+    try {
+        const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
+        fs.writeFileSync(flagPath, 'ACTIVE');
+    } catch (err) { }
+};
+
+const stopAutopilotSession = () => {
+    autopilotSessionActive = false;
+    saveAutoState();
+    if (sessionTimeout) clearTimeout(sessionTimeout);
+    try {
+        const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
+        if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath);
+    } catch (err) { }
+};
+
 // GET /api/auto-mode - Check if auto-continue is enabled
 app.get('/api/auto-mode', (req, res) => {
-    res.json({ enabled: autoModeEnabled });
+    res.json({
+        enabled: autoModeEnabled && autopilotSessionActive,
+        globalEnabled: autoModeEnabled,
+        sessionActive: autopilotSessionActive
+    });
 });
 
 // POST /api/auto-mode - Update auto-continue state
 app.post('/api/auto-mode', (req, res) => {
     const { enabled } = req.body;
     autoModeEnabled = enabled === true;
+
+    if (autoModeEnabled) {
+        startAutopilotSession();
+    } else {
+        stopAutopilotSession();
+    }
+    saveAutoState();
+
     const statusMsg = `Auto-mode ${autoModeEnabled ? 'ENABLED' : 'DISABLED'}`;
     console.log(statusMsg);
     broadcastActivity(`SYSTEM: ${statusMsg}`, 'system');
     res.json({ success: true, enabled: autoModeEnabled });
+});
+
+app.post('/api/autopilot-session/start', (req, res) => {
+    startAutopilotSession();
+    res.json({ success: true });
+});
+
+app.post('/api/autopilot-session/stop', (req, res) => {
+    stopAutopilotSession();
+    res.json({ success: true });
+});
+
+// POST /api/sync-instructions - Broadcoast instructions to all project roots
+app.post('/api/sync-instructions', (req, res) => {
+    let { instructions } = req.body;
+    const projectId = req.body.projectId || 2; // Default to DevControl
+
+    if (instructions === "LATEST_FROM_HISTORY") {
+        try {
+            const historyPath = path.join(__dirname, `manager_history_${projectId}.json`);
+            if (fs.existsSync(historyPath)) {
+                const history = JSON.parse(fs.readFileSync(historyPath, 'utf-8'));
+                const lastAssistantMsg = [...history].reverse().find(m => m.role === 'assistant');
+                if (lastAssistantMsg) {
+                    instructions = lastAssistantMsg.content;
+                } else {
+                    return res.status(404).json({ error: "No assistant history found" });
+                }
+            } else {
+                return res.status(404).json({ error: "No history file found" });
+            }
+        } catch (e) {
+            return res.status(500).json({ error: "Failed to read history" });
+        }
+    }
+
+    if (!instructions) {
+        return res.status(400).json({ error: "No instructions provided" });
+    }
+
+    console.log(`📡 Broadcasting Instructions to ${projects.length} projects...`);
+    let successCount = 0;
+    let failCount = 0;
+
+    projects.forEach(project => {
+        try {
+            if (project.path && fs.existsSync(project.path)) {
+                const instructionFile = path.join(project.path, '.antigravity-instructions.md');
+                const content = `### MANAGER INSTRUCTIONS [${new Date().toLocaleString()}]\n\n${instructions}\n\n--- \n*Sent via DevControl Sync Bridge*`;
+                fs.writeFileSync(instructionFile, content);
+                successCount++;
+            } else {
+                failCount++;
+            }
+        } catch (err) {
+            console.error(`Failed to sync to ${project.title}:`, err);
+            failCount++;
+        }
+    });
+
+    broadcastActivity(`SYNC: Instructions pushed to ${successCount} projects (${failCount} failed)`, 'system');
+    res.json({ success: true, synced: successCount, failed: failCount });
+});
+
+// --- Master Backup Endpoints ---
+app.get('/api/master-backups', (req, res) => {
+    try {
+        const backups = listMasterBackups();
+        res.json(backups);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/master-backup', (req, res) => {
+    try {
+        const result = createMasterBackup();
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/restore-master-backup', (req, res) => {
+    const { backupName } = req.body;
+    try {
+        const result = restoreMasterBackup(backupName);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // SSE Endpoint for frontend to subscribe to
@@ -485,10 +672,93 @@ app.post('/api/log-message', (req, res) => {
     }
 });
 
+// POST /api/projects/create - Create and initialize a new project
+app.post('/api/projects/create', (req, res) => {
+    const { title, subfolder, description, tags, status, version } = req.body;
+
+    // User requested specifically to use their GitHub folder
+    const baseDir = 'C:\\Users\\elois\\OneDrive\\Documents\\GitHub';
+    const projectPath = path.join(baseDir, subfolder);
+
+    // 1. Create Directory
+    if (!fs.existsSync(projectPath)) {
+        fs.mkdirSync(projectPath, { recursive: true });
+        console.log(`Created project folder: ${projectPath}`);
+    } else {
+        // If it exists, we just proceed to register it, or maybe error? 
+        // User said "create a new folder", but maybe they mean "register this folder".
+        // Let's assume safely we use it.
+        console.log(`Project folder already exists: ${projectPath}`);
+    }
+
+    // 2. Add to Projects config
+    const newId = projects.length > 0 ? Math.max(...projects.map(p => p.id)) + 1 : 1;
+    const newProject = {
+        id: newId,
+        title,
+        description,
+        status: status || 'Active',
+        version: version || '0.1.0',
+        tags: tags || [],
+        path: projectPath,
+        monitorUrl: '', // Can be filled later
+        departments: [],
+        docs: [],
+        issues: []
+    };
+
+    projects.push(newProject);
+    saveProjects(); // Persist to disk
+
+    // 3. Launch Antigravity
+    const antigravityPath = path.join(process.env.LOCALAPPDATA, 'Programs', 'Antigravity', 'Antigravity.exe');
+    exec(`"${antigravityPath}" "${projectPath}"`, (error) => {
+        if (error) console.error(`Failed to open Antigravity: ${error}`);
+    });
+
+    // 4. Optionally Init Git? (User said "with GitHub on my local machine")
+    // Let's run a quick git init to be helpful
+    exec('git init', { cwd: projectPath }, (err) => {
+        if (!err) console.log('Initialized git repository.');
+    });
+
+    broadcastActivity(`Initialized new project: ${title}`, 'system');
+    res.json({ success: true, project: newProject });
+});
+app.post('/api/launch-console', (req, res) => {
+    const { projectId } = req.body;
+    const project = projects.find(p => p.id === projectId);
+
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    console.log(`Launching project: ${project.title} at ${project.path}`);
+
+    // Action 1: Open Antigravity
+    const antigravityPath = path.join(process.env.LOCALAPPDATA, 'Programs', 'Antigravity', 'Antigravity.exe');
+    exec(`"${antigravityPath}" "${project.path}"`, (error) => {
+        if (error) console.error(`Failed to open Antigravity: ${error}`);
+    });
+
+    // Action 2: Launch Terminal & Run Dev Server
+    // We assume 'npm run dev' is the standard. If 'loadCmd' exists, we could use that,
+    // but the user specifically asked to "open project AND run".
+    const startScript = "npm run dev";
+    const command = `start powershell.exe -NoExit -Command "Set-Location '${project.path}'; Write-Host '🚀 Starting ${project.title}...' -ForegroundColor Cyan; ${startScript}"`;
+
+    exec(command, (error) => {
+        if (error) {
+            console.error(`Error launching terminal: ${error}`);
+            return res.status(500).json({ error: 'Failed to launch terminal' });
+        }
+        res.json({ success: true });
+    });
+});
+
 // GET /api/project-status - Read the status file
 app.get('/api/project-status', (req, res) => {
     const { projectId } = req.query;
     const targetId = parseInt(projectId) || 2; // Default to DevControl
+
     const project = projects.find(p => p.id === targetId);
 
     if (!project || !project.path) {
@@ -864,6 +1134,65 @@ app.post('/api/azure-tts', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`DevControl Server running on http://localhost:${port}`);
+// --- Backup & Restore System ---
+
+app.get('/api/backups', (req, res) => {
+    try {
+        const backups = listBackups();
+        res.json(backups);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/backup-now', (req, res) => {
+    try {
+        const result = createBackup();
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/restore-backup', (req, res) => {
+    const { backupName } = req.body;
+    if (!backupName) return res.status(400).json({ error: "Backup name required" });
+
+    try {
+        const result = restoreBackup(backupName);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/documentation', async (req, res) => {
+    try {
+        const docFiles = [
+            'IMPLEMENTATION_MASTER_PLAN.md',
+            'PROJECT_STATUS.md',
+            'AUTOPILOT_DOCUMENTATION.md',
+            'THEME_GUIDE.md'
+        ];
+
+        const docs = await Promise.all(docFiles.map(async file => {
+            const filePath = path.join(__dirname, '..', file);
+            if (fs.existsSync(filePath)) {
+                return {
+                    name: file,
+                    content: fs.readFileSync(filePath, 'utf8'),
+                    path: file
+                };
+            }
+            return null;
+        }));
+
+        res.json(docs.filter(d => d !== null));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`DevControl Server running on http://localhost:${PORT}`);
 });

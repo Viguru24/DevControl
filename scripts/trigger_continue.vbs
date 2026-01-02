@@ -16,11 +16,46 @@ targetTitle = "DevControl - Antigravity - Task"
 ' and we will only send keys if the activation was successful.
 ' To prevent "jumping," we will decrease frequency or only run on-demand.
 
-If WshShell.AppActivate(targetTitle) Then
-    ' We only send keys once focused
-    WScript.Sleep 500
-    WshShell.SendKeys "%{ENTER}"  ' Alt+Enter for Accept All
-    WScript.Echo "Pulsed Accept to: " & targetTitle
+Set fso = CreateObject("Scripting.FileSystemObject")
+scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
+flagFile = fso.BuildPath(scriptDir, "AUTOPILOT_ACTIVE.tmp")
+
+If fso.FileExists(flagFile) Then
+    Dim foundWindow
+    foundWindow = False
+
+    ' Greedy Multi-Window Targeting
+    ' We iterate through all known title patterns.
+    ' Note: AppActivate will bring a window to front if it matches.
+    ' If multiple windows match the SAME string, this is trickier in VBS,
+    ' but cycling through our variations broadens the reach.
+    
+    Dim targets, t
+    targets = Array("DevControl - Task", "Walkthrough", "DevControl - Antigravity", "Antigravity")
+    
+    For Each t In targets
+        ' We use a loop here to try and "catch" multiple windows if possible
+        ' though AppActivate is limited, cycling through specific->general helps.
+        If WshShell.AppActivate(t) Then
+            WScript.Sleep 400 ' Focus settle
+            
+            ' Pulse keys
+            WshShell.SendKeys "%{ENTER}" 
+            WScript.Sleep 100
+            WshShell.SendKeys "^{ENTER}"
+            WScript.Sleep 100
+            WshShell.SendKeys "{ENTER}"
+            
+            WScript.Echo "Zero-Touch: Pulsed [" & t & "]"
+            foundWindow = True
+            ' We DO NOT Exit For here anymore, so we can try the next target pattern
+            ' in case other windows match different strings.
+        End If
+    Next
+
+    If Not foundWindow Then
+        WScript.Echo "Standby: No suitable Antigravity window found."
+    End If
 Else
-    WScript.Echo "Target window not in foreground - Skipping to prevent focus theft."
+    WScript.Echo "Safety Lock: STANDBY (No active session)"
 End If

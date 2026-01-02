@@ -1,0 +1,140 @@
+.zt-widget-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    overflow: hidden;
+    -webkit-app-region: drag;
+    /* THE ENTIRE WINDOW AREA IS DRAGGABLE */
+    pointer-events: auto;
+}
+
+.zt-widget-orb {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(10, 10, 15, 0.98);
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(0, 243, 255, 0.3);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 243, 255, 0.1);
+    -webkit-app-region: no-drag;
+    /* EXCEPT THE ORB ITSELF */
+    pointer-events: auto;
+}
+
+.zt-orb-content {
+    position: relative;
+    z-index: 2;
+    color: rgba(255, 255, 255, 0.3);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.zt-widget-orb.on {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 15px var(--neon-cyan-glow);
+}
+
+.zt-widget-orb.on .zt-orb-content {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+}
+
+.zt-widget-orb.active {
+    border-color: #00ff9d;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 255, 157, 0.4);
+}
+
+.zt-widget-orb.active .zt-orb-content {
+    color: #00ff9d;
+    text-shadow: 0 0 15px rgba(0, 255, 157, 0.8);
+}
+
+.zt-orb-ring {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    transition: all 0.4s;
+    pointer-events: none;
+}
+
+.zt-widget-orb.on .zt-orb-ring {
+    border-color: rgba(0, 243, 255, 0.2);
+}
+
+.zt-widget-orb.active .zt-orb-ring {
+    border-color: rgba(0, 255, 157, 0.4);
+    animation: orb-pulse 2s infinite;
+}
+
+@keyframes orb-pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+
+    50% {
+        transform: scale(1.15);
+        opacity: 0.3;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+}
+
+.pulse-zap {
+    animation: zap-vibe 1.2s infinite;
+}
+
+@keyframes zap-vibe {
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+        filter: brightness(1.6);
+    }
+
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+.zt-status-text {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+/* Hover and Active effects */
+.zt-widget-orb:hover {
+    transform: scale(1.1);
+    background: rgba(15, 15, 25, 0.99);
+    border-color: rgba(0, 243, 255, 0.8);
+}
+
+.zt-widget-orb:active {
+    transform: scale(0.9);
+    filter: brightness(1.3);
+}

@@ -9,6 +9,7 @@ const MonitorView = ({ projects }) => {
     // We no longer filter projects. We show ALL projects.
     // If a project has no monitorUrl, we show a placeholder.
 
+    // Fix: Depend on 'projects' array content, not just length
     useEffect(() => {
         // Initialize iframe states
         const initialStates = {};
@@ -27,7 +28,7 @@ const MonitorView = ({ projects }) => {
             };
         });
         setProjectStats(stats);
-    }, [projects.length]);
+    }, [projects]);
 
     const handleIframeLoad = (projectId) => {
         setIframeStates(prev => ({
@@ -60,7 +61,7 @@ const MonitorView = ({ projects }) => {
             return;
         }
         try {
-            await fetch('http://localhost:3001/api/launch', {
+            await fetch('http://localhost:42424/api/launch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ path: project.path })
@@ -74,7 +75,7 @@ const MonitorView = ({ projects }) => {
         <div className="monitor-container">
             <div className="monitor-header">
                 <div className="header-content">
-                    <h2><Activity size={24} color="var(--color-primary)" /> Command Center</h2>
+                    <h2><Activity size={24} color="var(--neon-cyan)" /> Command Center</h2>
                     <p>Real-time monitoring of active project protocols</p>
                 </div>
                 <div className="monitor-stats">
@@ -104,7 +105,7 @@ const MonitorView = ({ projects }) => {
                     }
 
                     return (
-                        <div key={project.id} className={`monitor-cell ${stats.status || ''}`}>
+                        <div key={project.id} className={`monitor-cell glass-panel ${stats.status || ''}`}>
                             <div className="cell-header">
                                 <div className="header-left">
                                     <span className={`live-dot ${state.loaded ? 'active' : state.error ? 'error' : 'loading'}`}></span>

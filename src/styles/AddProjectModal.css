@@ -57,3 +57,26 @@
     color: var(--text-main);
     background: rgba(255, 255, 255, 0.05);
 }
+
+.btn-primary {
+    padding: 10px 24px;
+    border-radius: var(--radius-md);
+    background: var(--neon-cyan);
+    color: #000;
+    font-weight: 600;
+    transition: var(--transition-default);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Fix Input Selectivity issues */
+.form-group input,
+.form-group textarea {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    cursor: text;
+}

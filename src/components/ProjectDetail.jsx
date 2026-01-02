@@ -36,7 +36,7 @@ const ProjectDetail = ({ project, onClose, onDelete, onEdit }) => {
     const handleLoadProject = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:3001/api/launch', {
+            const response = await fetch('http://localhost:42424/api/launch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ path: project.path })
@@ -61,7 +61,7 @@ const ProjectDetail = ({ project, onClose, onDelete, onEdit }) => {
         setIsAnalyzing(true);
 
         try {
-            const response = await fetch('http://localhost:3001/api/optimize', {
+            const response = await fetch('http://localhost:42424/api/optimize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -207,11 +207,20 @@ const ProjectDetail = ({ project, onClose, onDelete, onEdit }) => {
 
                     {activeTab === 'strategy' && (
                         <div className="tab-panel fade-in ai-panel">
+                            {/* Empty State for New Projects */}
+                            {!aiStrategy && !isAnalyzing && (
+                                <div className="strategy-empty-state">
+                                    <Sparkles size={48} className="empty-icon-neon" />
+                                    <h3>Initialize Strategy Protocol</h3>
+                                    <p>No active strategy found for this mission. Define your objectives below to generate a tactical plan.</p>
+                                </div>
+                            )}
+
                             <div className="ai-controls">
                                 <div className="api-input-group">
-                                    <label>Optimization Focus</label>
+                                    <label>Strategic Objective</label>
                                     <textarea
-                                        placeholder="e.g., 'Focus on fixing the memory leak in the crypto module' or 'Suggest a new UI theme'"
+                                        placeholder="e.g., 'Analyze current architecture for scalability bottlenecks' or 'Draft a roadmap for the Alpha release'"
                                         rows={3}
                                         value={customContext}
                                         onChange={(e) => setCustomContext(e.target.value)}
@@ -223,9 +232,9 @@ const ProjectDetail = ({ project, onClose, onDelete, onEdit }) => {
                                     disabled={isAnalyzing}
                                 >
                                     {isAnalyzing ? (
-                                        <> <RefreshCw className="spin" size={18} /> Analyzing Project Vectors... </>
+                                        <> <RefreshCw className="spin" size={18} /> Computing Strategic Vectors... </>
                                     ) : (
-                                        <> <Sparkles size={18} /> Generate Strategy </>
+                                        <> <Zap size={18} /> Execute Strategy Generation </>
                                     )}
                                 </button>
                             </div>
@@ -233,8 +242,8 @@ const ProjectDetail = ({ project, onClose, onDelete, onEdit }) => {
                             {aiStrategy && (
                                 <div className="ai-result slide-up">
                                     <div className="result-header">
-                                        <h3><BrainCircuit size={20} /> Proposed Strategy</h3>
-                                        <span className="timestamp">Just now</span>
+                                        <h3><BrainCircuit size={20} /> Tactical Analysis</h3>
+                                        <span className="timestamp">Generated Just Now</span>
                                     </div>
                                     <div className="markdown-body">
                                         <Markdown>{aiStrategy}</Markdown>

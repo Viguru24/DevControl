@@ -36,10 +36,14 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+const isWidget = window.location.search.includes('mode=zero-touch');
+
+import ZeroTouchWidget from './components/ZeroTouchWidget.jsx';
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      {isWidget ? <ZeroTouchWidget /> : <App />}
     </ErrorBoundary>
   </StrictMode>,
 )

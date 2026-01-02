@@ -583,3 +583,34 @@
         transform: translateY(0);
     }
 }
+.strategy-empty-state {
+    text-align: center;
+    padding: var(--space-xl);
+    background: rgba(164, 142, 255, 0.03);
+    border: 1px dashed rgba(164, 142, 255, 0.2);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+}
+
+.empty-icon-neon {
+    color: rgba(164, 142, 255, 0.2);
+    margin-bottom: var(--space-md);
+    animation: pulse 3s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+    100% { opacity: 0.3; }
+}
+
+.strategy-empty-state h3 {
+    color: #a48eff;
+    margin-bottom: var(--space-xs);
+}
+
+.strategy-empty-state p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+

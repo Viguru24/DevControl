@@ -88,17 +88,17 @@ const AddProjectModal = ({ isOpen, onClose, onAdd, initialData }) => {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="path">Project Path</label>
+                    <label htmlFor="subfolder">Project Folder Name (Subfolder)</label>
                     <input
                         type="text"
-                        id="path"
-                        name="path"
-                        value={formData.path}
+                        id="subfolder"
+                        name="subfolder"
+                        value={formData.subfolder || ''}
                         onChange={handleChange}
-                        placeholder="c:/Users/elois/OneDrive/Documents/GitHub/my-project"
+                        placeholder="my-new-app"
                         required
                     />
-                    <small>Full path to your project repository</small>
+                    <small>Will be created in C:\Users\elois\OneDrive\Documents\GitHub\</small>
                 </div>
 
                 <div className="form-group">
@@ -127,7 +127,7 @@ const AddProjectModal = ({ isOpen, onClose, onAdd, initialData }) => {
 
                 <div className="form-actions">
                     <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-                    <button type="submit" className="btn-primary">{initialData ? "Update Project" : "Launch Project"}</button>
+                    <button type="submit" className="btn-primary">{initialData ? "Update Project" : "Create & Launch Project"}</button>
                 </div>
             </form>
         </Modal>

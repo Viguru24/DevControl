@@ -48,7 +48,7 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
     const loadHistory = async (projectId) => {
         const id = projectId || activeProjectId;
         try {
-            const res = await fetch(`http://localhost:3001/api/manager-history?projectId=${id}&t=${Date.now()}`);
+            const res = await fetch(`http://localhost:42424/api/manager-history?projectId=${id}&t=${Date.now()}`);
             const history = await res.json();
             setMessages(history || []);
         } catch (e) {
@@ -61,7 +61,7 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
         if (isManual) setIsRefreshing(true);
         const targetId = projectId || activeProjectId;
         try {
-            const res = await fetch(`http://localhost:3001/api/project-status?projectId=${targetId}&t=${Date.now()}`);
+            const res = await fetch(`http://localhost:42424/api/project-status?projectId=${targetId}&t=${Date.now()}`);
             const text = await res.text();
             setSystemContext(text);
         } catch (e) {
@@ -229,7 +229,7 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
             window.speechSynthesis.speak(utterance);
         } else {
             try {
-                const response = await fetch('http://localhost:3001/api/tts', {
+                const response = await fetch('http://localhost:42424/api/tts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: cleanText, voice: aiVoiceId })
@@ -328,7 +328,7 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
             formData.append('audio', audioBlob, 'recording.webm');
 
             const fetchStart = Date.now();
-            const res = await fetch('http://localhost:3001/api/stt', {
+            const res = await fetch('http://localhost:42424/api/stt', {
                 method: 'POST',
                 body: formData
             });
@@ -356,7 +356,7 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
     const handleDispatch = async (content, idx) => {
         setDispatchingId(idx);
         try {
-            const res = await fetch('http://localhost:3001/api/send-instruction', {
+            const res = await fetch('http://localhost:42424/api/send-instruction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ instruction: content, projectId: activeProjectId })
@@ -386,9 +386,12 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
         setIsLoading(true);
 
         try {
+            // Signal server to START autopilot session (Ghost Finger Active)
+            await fetch('http://localhost:42424/api/autopilot-session/start', { method: 'POST' }).catch(() => { });
+
             let currentContext = systemContext;
             try {
-                const res = await fetch(`http://localhost:3001/api/project-status?projectId=${activeProjectId}&t=${Date.now()}`);
+                const res = await fetch(`http://localhost:42424/api/project-status?projectId=${activeProjectId}&t=${Date.now()}`);
                 const text = await res.text();
                 currentContext = text;
                 setSystemContext(text);
@@ -398,7 +401,7 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
 
             const historyToSend = [...currentMessages, userMsg];
 
-            const response = await fetch('http://localhost:3001/api/manager-chat', {
+            const response = await fetch('http://localhost:42424/api/manager-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -433,6 +436,8 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
             }]);
         } finally {
             setIsLoading(false);
+            // Signal server to STOP autopilot session
+            await fetch('http://localhost:42424/api/autopilot-session/stop', { method: 'POST' }).catch(() => { });
         }
     };
 
@@ -459,11 +464,11 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
         setIsAppraising(true);
         try {
             // 1. Get current status as the basis for appraisal
-            const statusRes = await fetch(`http://localhost:3001/api/project-status?projectId=${activeProjectId}&t=${Date.now()}`);
+            const statusRes = await fetch(`http://localhost:42424/api/project-status?projectId=${activeProjectId}&t=${Date.now()}`);
             const statusText = await statusRes.text();
 
             // 2. Call the appraisal injection endpoint
-            const res = await fetch('http://localhost:3001/api/manager-appraisal', {
+            const res = await fetch('http://localhost:42424/api/manager-appraisal', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -486,10 +491,35 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
         }
     };
 
+    const handleGlobalSync = async () => {
+        const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+        if (!lastAssistantMsg) {
+            alert("No instructions found to sync. Chat with the manager first.");
+            return;
+        }
+
+        setIsRefreshing(true);
+        try {
+            const res = await fetch('http://localhost:42424/api/sync-instructions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instructions: lastAssistantMsg.content })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`🚀 Synchronization Complete!\nInstructions pushed to ${data.synced} projects.`);
+            }
+        } catch (e) {
+            alert("Sync Bridge failed: " + e.message);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
     const handleNewSession = async () => {
         if (!window.confirm("Start a new session for this project? history will be archived.")) return;
         try {
-            await fetch(`http://localhost:3001/api/manager-history?projectId=${activeProjectId}`, { method: 'DELETE' });
+            await fetch(`http://localhost:42424/api/manager-history?projectId=${activeProjectId}`, { method: 'DELETE' });
             setMessages([]);
             await loadContext(false, activeProjectId);
         } catch (e) {
@@ -499,194 +529,117 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
     };
 
     return (
-        <div className="manager-container">
-            {/* Unified Main Area */}
-            <div className="manager-main">
-                <div className="chat-header">
-                    <div className="header-left">
-                        <div className="status-indicator">
-                            <div className="status-dot"></div>
-                            <span>STRATEGIC CORE: ONLINE</span>
-                        </div>
-                        <div className="active-context-pill">
-                            <Rocket size={12} />
-                            <span>{availableProjects.find(p => p.id === activeProjectId)?.title || 'UNKNOWN'}</span>
-                        </div>
+        <div className="manager-page animate-fade">
+            <header className="page-header">
+                <div className="header-meta">
+                    <div className="status-badge">
+                        <div className="status-dot"></div>
+                        MODE: BEYOND-RESCUE (v5.0)
                     </div>
-
-                    <div className="header-actions">
-                        <button className={`header-btn ${isAppraising ? 'refreshing' : ''}`} onClick={handleAppraise} disabled={isAppraising}>
-                            <Brain size={14} className={isAppraising ? 'rotate-anim' : ''} />
-                            <span>{isAppraising ? 'APPRAISING...' : 'REQUEST APPRAISAL'}</span>
-                        </button>
-                        <button className="header-btn" onClick={() => loadContext(true)} disabled={isRefreshing}>
-                            <RefreshCw size={14} className={isRefreshing ? 'rotate-anim' : ''} />
-                            <span>{isRefreshing ? 'SYNCING...' : 'SYNC'}</span>
-                        </button>
-                        <button className="header-btn danger" onClick={handleNewSession}>
-                            <Trash2 size={14} />
-                            <span>NEW SESSION</span>
-                        </button>
-                    </div>
+                    <h1>Strategic Command</h1>
                 </div>
 
-                <div className="messages-area">
-                    {messages.map((msg, idx) => {
-                        const messageId = msg.id || `msg-${idx}`;
-                        return (
-                            <div key={messageId} className={`message ${msg.role}`}>
-                                <div className={`role-icon ${msg.role}`}>
-                                    {msg.role === 'user' ? <User size={18} /> : <Bot size={18} />}
-                                </div>
-                                <div className="message-content-wrapper">
-                                    <div className="message-bubble">
-                                        <Markdown>{msg.content}</Markdown>
-                                    </div>
+                <div className="header-actions">
+                    <button className="nav-item" onClick={handleGlobalSync} disabled={isRefreshing}>
+                        <RefreshCw size={16} className={isRefreshing ? 'rotate-anim' : ''} />
+                        <span>Push to All Projects</span>
+                    </button>
+                    <button className="nav-item" onClick={handleAppraise} disabled={isAppraising}>
+                        <Brain size={16} />
+                        <span>{isAppraising ? 'Appraising...' : 'Request Appraisal'}</span>
+                    </button>
+                    <button className="nav-item" onClick={handleNewSession}>
+                        <Trash2 size={16} />
+                        <span>Reset Session</span>
+                    </button>
+                </div>
+            </header>
 
-                                    <div className="message-actions">
+            <div className="chat-history">
+                {messages.map((msg, idx) => {
+                    const messageId = msg.id || `msg-${idx}`;
+                    return (
+                        <div key={messageId} className={`msg-wrapper ${msg.role}`}>
+                            <div className="msg-avatar">
+                                {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
+                            </div>
+                            <div className="msg-bubble">
+                                <Markdown>{msg.content}</Markdown>
+
+                                <div className="message-actions" style={{ marginTop: '1rem', display: 'flex', gap: '10px' }}>
+                                    <button
+                                        className="dock-btn"
+                                        style={{ width: 'auto', padding: '0 10px', height: '30px', fontSize: '0.7rem' }}
+                                        onClick={() => handleCopy(msg.content, messageId)}
+                                    >
+                                        <Copy size={12} />
+                                        <span>{copyingId === messageId ? 'Copied' : 'Copy'}</span>
+                                    </button>
+                                    {msg.role === 'assistant' && (
                                         <button
-                                            className="action-btn"
-                                            onClick={() => handleCopy(msg.content, messageId)}
+                                            className="dock-btn"
+                                            style={{ width: 'auto', padding: '0 10px', height: '30px', fontSize: '0.7rem' }}
+                                            onClick={() => handleDispatch(msg.content, idx)}
                                         >
-                                            {copyingId === messageId ? <Check size={14} /> : <Copy size={14} />}
-                                            <span>{copyingId === messageId ? 'Copied!' : 'Copy'}</span>
+                                            <Rocket size={12} />
+                                            <span>Send to Agent</span>
                                         </button>
-
-                                        {msg.role === 'assistant' && (
-                                            <button
-                                                className="action-btn dispatch-btn"
-                                                onClick={() => handleDispatch(msg.content, idx)}
-                                                disabled={dispatchingId === idx}
-                                            >
-                                                <Rocket size={14} />
-                                                <span>{dispatchingId === idx ? 'Sending...' : 'Send to Agent'}</span>
-                                            </button>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
                             </div>
-                        );
-                    })}
-                    {isLoading && (
-                        <div className="message assistant">
-                            <div className="role-icon assistant">
-                                <Bot size={18} />
-                            </div>
-                            <div className="message-bubble loading">
-                                Analyzing strategy vectors...
-                            </div>
                         </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
-
-                <div className="input-area">
-                    <div className="input-container">
-                        <button
-                            className={`voice-btn ${isRecording ? 'active' : ''}`}
-                            onClick={() => isRecording ? stopRecording() : startRecording()}
-                            title={isRecording ? "Click to stop" : "Click to speak (STT)"}
-                        >
-                            {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
-                        </button>
-
-                        <textarea
-                            className="chat-input"
-                            placeholder={isRecording ? "Listening..." : `Message the Manager for ${availableProjects.find(p => p.id === activeProjectId)?.title}...`}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                        />
-
-                        <div className="input-actions">
-                            <div className="voice-settings-wrapper">
-                                {showVoiceSettings && (
-                                    <div className="voice-settings-popover">
-                                        <div className="setting-group">
-                                            <label>Voice Engine</label>
-                                            <div className="voice-type-toggle">
-                                                <button
-                                                    className={voiceType === 'system' ? 'active' : ''}
-                                                    onClick={() => setVoiceType('system')}
-                                                >
-                                                    Standard
-                                                </button>
-                                                <button
-                                                    className={voiceType === 'ai' ? 'active' : ''}
-                                                    onClick={() => setVoiceType('ai')}
-                                                >
-                                                    Premium AI
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="setting-group">
-                                            <label>{voiceType === 'system' ? 'System Identity' : 'AI Persona'}</label>
-                                            {voiceType === 'system' ? (
-                                                <select
-                                                    value={selectedVoiceURI}
-                                                    onChange={(e) => setSelectedVoiceURI(e.target.value)}
-                                                >
-                                                    {availableVoices.map(v => (
-                                                        <option key={v.voiceURI} value={v.voiceURI}>
-                                                            {v.name} ({v.lang})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <select
-                                                    value={aiVoiceId}
-                                                    onChange={(e) => setAiVoiceId(e.target.value)}
-                                                >
-                                                    <option value="alloy">Alloy (Neutral)</option>
-                                                    <option value="echo">Echo (Warm)</option>
-                                                    <option value="fable">Fable (British)</option>
-                                                    <option value="onyx">Onyx (Deep)</option>
-                                                    <option value="nova">Nova (Bright)</option>
-                                                    <option value="shimmer">Shimmer (Clear)</option>
-                                                </select>
-                                            )}
-                                        </div>
-                                        <div className="setting-group">
-                                            <div className="label-row">
-                                                <label>Speed</label>
-                                                <span>{voiceSpeed}x</span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="0.5"
-                                                max="2.5"
-                                                step="0.1"
-                                                value={voiceSpeed}
-                                                onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
-                                            />
-                                        </div>
-                                        <button className="preview-btn" onClick={() => speak("Voice identity verification in progress.")}>
-                                            <RefreshCw size={12} /> Test Accent
-                                        </button>
-                                    </div>
-                                )}
-                                <button
-                                    className={`audio-toggle ${isAutoSpeak ? 'active' : ''}`}
-                                    onClick={toggleAudio}
-                                    title={isAutoSpeak ? "Auto-Read: ON" : "Auto-Read: OFF"}
-                                >
-                                    {isAutoSpeak ? <Volume2 size={18} /> : <VolumeX size={18} />}
-                                </button>
-                                <button
-                                    className={`voice-settings-btn ${showVoiceSettings ? 'active' : ''}`}
-                                    onClick={() => setShowVoiceSettings(!showVoiceSettings)}
-                                    title="Voice & Accent Settings"
-                                >
-                                    <Settings2 size={18} />
-                                </button>
-                            </div>
-                            <button className="send-btn" onClick={handleSend} disabled={isLoading || isRecording}>
-                                <Send size={18} />
-                            </button>
+                    );
+                })}
+                {isLoading && (
+                    <div className="msg-wrapper assistant">
+                        <div className="msg-avatar"><RefreshCw size={20} className="rotate-anim" /></div>
+                        <div className="msg-bubble" style={{ fontStyle: 'italic', opacity: 0.6 }}>
+                            Processing strategic vectors...
                         </div>
                     </div>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+
+            <div className="input-dock">
+                <div className="input-container">
+                    <button
+                        className={`dock-btn ${isRecording ? 'active' : ''}`}
+                        onClick={() => isRecording ? stopRecording() : startRecording()}
+                    >
+                        {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+                    </button>
+
+                    <textarea
+                        className="msg-input"
+                        placeholder="Initiate directive..."
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        rows={1}
+                    />
+
+                    <div className="dock-actions">
+                        <button className="dock-btn" onClick={() => setShowVoiceSettings(!showVoiceSettings)}>
+                            <Settings2 size={18} />
+                        </button>
+                        <button className="dock-btn btn-send" onClick={handleSend} disabled={isLoading}>
+                            <Send size={18} />
+                        </button>
+                    </div>
                 </div>
+
+                {showVoiceSettings && (
+                    <div className="voice-settings-popover" style={{ bottom: '80px', right: '0' }}>
+                        {/* Voice settings content remains similar but styled by the new popover class if needed */}
+                        <div className="setting-group">
+                            <label>Voice Identity</label>
+                            <select value={selectedVoiceURI} onChange={(e) => setSelectedVoiceURI(e.target.value)}>
+                                {availableVoices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

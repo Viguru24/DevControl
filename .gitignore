@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+dist-electron
+release-builds
+Backups
+scripts/*.tmp
+scripts/auto_mode_state.json
+server/manager_history_*.json
+build
