@@ -58,7 +58,7 @@ function App() {
       selectedProjectId={selectedProjectId}
       setSelectedProjectId={setSelectedProjectId}
     >
-      <div className="dashboard-grid animate-fade">
+      <div className="view-container">
         {currentView === 'dashboard' && (
           <DashboardView
             projects={projects}

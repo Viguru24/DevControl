@@ -1,7 +1,9 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    // Add any specific API requirements here
-    // For now, DevControl works mostly over HTTP to the backend
-    platform: process.platform
+    platform: process.platform,
+    getAutoMode: () => ipcRenderer.invoke('get-auto-mode'),
+    toggleAutoMode: (enabled) => ipcRenderer.invoke('toggle-auto-mode', enabled),
+    syncInstructions: (instructions) => ipcRenderer.invoke('sync-instructions', instructions),
+    isElectron: true
 });

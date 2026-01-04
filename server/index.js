@@ -496,9 +496,19 @@ const startAutopilotSession = () => {
     saveAutoState();
     if (sessionTimeout) clearTimeout(sessionTimeout);
     sessionTimeout = setTimeout(() => {
-        autopilotSessionActive = false;
-        const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
-        if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath);
+        // Only expire if not globally enabled
+        if (!autoModeEnabled) {
+            autopilotSessionActive = false;
+            const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
+            if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath);
+            broadcastActivity(`SYSTEM: Autopilot session expired (Safety Timeout)`, 'system');
+        } else {
+            // If globally enabled, just refresh the session flag existence
+            try {
+                const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
+                if (!fs.existsSync(flagPath)) fs.writeFileSync(flagPath, 'ACTIVE');
+            } catch (err) { }
+        }
     }, 600000);
 
     try {
@@ -507,20 +517,25 @@ const startAutopilotSession = () => {
     } catch (err) { }
 };
 
-const stopAutopilotSession = () => {
+const stopAutopilotSession = (force = false) => {
     autopilotSessionActive = false;
     saveAutoState();
     if (sessionTimeout) clearTimeout(sessionTimeout);
-    try {
-        const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
-        if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath);
-    } catch (err) { }
+
+    // Only remove flag if not globally enabled or if forced (during global disable)
+    if (!autoModeEnabled || force) {
+        try {
+            const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
+            if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath);
+            console.log("[Autopilot] Flag file REMOVED (Safety Lock Active)");
+        } catch (err) { }
+    }
 };
 
 // GET /api/auto-mode - Check if auto-continue is enabled
 app.get('/api/auto-mode', (req, res) => {
     res.json({
-        enabled: autoModeEnabled && autopilotSessionActive,
+        enabled: autoModeEnabled || autopilotSessionActive, // EITHER global OR transient session
         globalEnabled: autoModeEnabled,
         sessionActive: autopilotSessionActive
     });
@@ -534,7 +549,7 @@ app.post('/api/auto-mode', (req, res) => {
     if (autoModeEnabled) {
         startAutopilotSession();
     } else {
-        stopAutopilotSession();
+        stopAutopilotSession(true); // force = true to clear flag when disabling globally
     }
     saveAutoState();
 

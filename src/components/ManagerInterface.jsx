@@ -436,8 +436,8 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
             }]);
         } finally {
             setIsLoading(false);
-            // Signal server to STOP autopilot session
-            await fetch('http://localhost:42424/api/autopilot-session/stop', { method: 'POST' }).catch(() => { });
+            // We NO LONGER stop the session here, because it might kill a background agent task.
+            // The 10-minute server-side timeout manages the safety lock.
         }
     };
 

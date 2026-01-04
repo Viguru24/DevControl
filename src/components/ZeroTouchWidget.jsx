@@ -4,12 +4,19 @@ import '../styles/ZeroTouchWidget.css';
 
 const ZeroTouchWidget = () => {
     const [status, setStatus] = useState({ enabled: false, sessionActive: false });
+    const [isToggling, setToggling] = useState(false);
 
     const checkStatus = async () => {
+        if (isToggling) return; // Don't let the poller overwrite a toggle in progress
         try {
-            const res = await fetch('http://localhost:42424/api/auto-mode');
-            const data = await res.json();
-            setStatus({ enabled: data.globalEnabled, sessionActive: data.sessionActive });
+            if (window.electronAPI) {
+                const data = await window.electronAPI.getAutoMode();
+                setStatus({ enabled: data.globalEnabled, sessionActive: data.sessionActive });
+            } else {
+                const res = await fetch('http://localhost:42424/api/auto-mode');
+                const data = await res.json();
+                setStatus({ enabled: data.globalEnabled, sessionActive: data.sessionActive });
+            }
         } catch (err) { }
     };
 
@@ -17,7 +24,7 @@ const ZeroTouchWidget = () => {
         checkStatus();
         const interval = setInterval(checkStatus, 1500);
         return () => clearInterval(interval);
-    }, []);
+    }, [isToggling]); // Re-run effect when toggling state changes
 
     const toggleMode = async (e) => {
         if (e) {
@@ -25,55 +32,61 @@ const ZeroTouchWidget = () => {
             e.stopPropagation();
         }
 
-        const newState = !status.enabled;
-        console.log(`[ZeroTouch] Toggle Triggered! Attempting to set to: ${newState}`);
+        if (isToggling) return;
 
-        // Optimistic UI update
+        const newState = !status.enabled;
+        console.log(`[ZeroTouch] Toggle Triggered! Attempting to set to: ${newState} (IPC: ${!!window.electronAPI})`);
+
+        setToggling(true);
+        // Optimistic UI
         setStatus(prev => ({ ...prev, enabled: newState }));
 
         try {
-            console.log(`[ZeroTouch] Fetching: http://localhost:42424/api/auto-mode with body:`, { enabled: newState });
-            const res = await fetch('http://localhost:42424/api/auto-mode', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: newState })
-            });
-            const data = await res.json();
-            console.log(`[ZeroTouch] Server Response Success:`, data);
-
-            if (data.enabled !== undefined) {
-                setStatus(prev => ({ ...prev, enabled: data.enabled }));
+            if (window.electronAPI) {
+                const data = await window.electronAPI.toggleAutoMode(newState);
+                if (data.enabled !== undefined) {
+                    setStatus(prev => ({ ...prev, enabled: data.enabled }));
+                }
+            } else {
+                const res = await fetch('http://localhost:42424/api/auto-mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: newState })
+                });
+                const data = await res.json();
+                if (data.enabled !== undefined) {
+                    setStatus(prev => ({ ...prev, enabled: data.enabled }));
+                }
             }
         } catch (err) {
-            console.error("[ZeroTouch] Toggle Fetch FAILED! Check if server is running on 42424.", err);
+            console.error("[ZeroTouch] Toggle failed!", err);
+        } finally {
+            // Give IPC time to settle
+            setTimeout(() => setToggling(false), 500);
         }
     };
 
     return (
         <div className="zt-widget-container">
-            {/* The drag handle area (around the orb) */}
-            <div className="zt-widget-drag-surface"></div>
-
             <button
                 className={`zt-widget-orb ${status.enabled ? 'on' : 'off'} ${status.sessionActive ? 'active' : ''}`}
-                onMouseDown={(e) => {
-                    console.log("[ZeroTouch] Orb MouseDown");
+                onClick={(e) => {
+                    console.log("[ZeroTouch] Orb Clicked");
                     toggleMode(e);
                 }}
                 onDoubleClick={async (e) => {
                     console.log("[ZeroTouch] Orb Double-Clicked! Triggering Global Sync...");
                     try {
-                        // We fetch the latest history from the server and sync it
-                        // This assumes the server can find the 'latest' instruction
-                        await fetch('http://localhost:42424/api/sync-instructions', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ instructions: "LATEST_FROM_HISTORY" }) // Server will handle this keyword
-                        });
+                        if (window.electronAPI) {
+                            await window.electronAPI.syncInstructions("LATEST_FROM_HISTORY");
+                        } else {
+                            await fetch('http://localhost:42424/api/sync-instructions', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ instructions: "LATEST_FROM_HISTORY" })
+                            });
+                        }
                     } catch (err) { }
-                }}
-                onClick={(e) => {
-                    console.log("[ZeroTouch] Orb Clicked");
                 }}
                 title={status.enabled ? "Zero-Touch: Active" : "Zero-Touch: Off"}
             >

@@ -12,6 +12,7 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "electron:dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"wait-on tcp:42424 && electron .\"",
     "electron:widget": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"wait-on tcp:42424 && electron . --widget-only\"",
+    "electron:widget:standalone": "electron . --widget-only",
     "build": "vite build",
     "dist": "npm run build && electron-builder",
     "lint": "eslint .",

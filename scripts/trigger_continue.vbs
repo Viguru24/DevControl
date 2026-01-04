@@ -48,8 +48,9 @@ If fso.FileExists(flagFile) Then
             
             WScript.Echo "Zero-Touch: Pulsed [" & t & "]"
             foundWindow = True
-            ' We DO NOT Exit For here anymore, so we can try the next target pattern
-            ' in case other windows match different strings.
+            ' IMPORTANT: Exit after the first match to prevent "focus cycling"
+            ' where multiple windows fight for the foreground in one second.
+            Exit For
         End If
     Next
 

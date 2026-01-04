@@ -3,11 +3,15 @@
 **Project Health:** 🟢 STABLE  
 **Active Objective:** Voice interface optimization and user experience refinement.
 
-## Current Blockers & Active Issues
+### UI / UX System
+- **Layout Precision:** Resolved horizontal scrolling and "cut off" issues in Manager Interface by removing redundant grid wrappers.
+- **Visual Contrast:** High-contrast input dock refined for better visibility.
+- **Sidebar Navigation:** Scrollbar visibility increased and scrolling functionality restored.
 
 ### Voice System
-- **Missing Voice:** User's preferred German-English accent voice is not appearing in the dropdown. Needs console log review to locate the correct voice URI.
-- **STT Latency:** Speech-to-text transcription takes 1-3 seconds via Groq API. User may find this delay noticeable during dictation.
+- **Missing Voice:** User's preferred German-English accent voice is not appearing in the dropdown. Confirmed SAPI5 limitation; browser-based voice discovery logs show correct identities.
+- **Port Correction:** Fixed incorrect port (3001) in `check_auto_mode.mjs` to match server port (42424).
+- **STT Latency:** Speech-to-text transcription stabilized via Groq Whisper.
 
 ### Appraisal System
 - **Context Freshness:** This file must be manually updated to reflect session work. Consider automation or real-time context injection.
@@ -35,9 +39,9 @@ Voice interface is stable and functional. Currently in Phase 3 (Execution Loop),
 
 ## Strategic Memory (Session Knowledge)
 - **Voice Preferences:** Louis prefers a German-English accent. Microsoft David/Zira are currently the only detected system voices.
-- **UI Philosophy:** High-contrast, neon-midnight aesthetic. Horizontal cutoff issue resolved 2026-01-01.
+- **UI Philosophy:** High-contrast, neon-midnight aesthetic. Horizontal cutoff and sidebar scrolling issues resolved 2026-01-03.
 - **Efficiency Goal:** "Zero-Touch" philosophy. Minimize manual clicks; prioritize background automation.
-- **Backups:** Full strategic backup completed 2026-01-01 (including GitHub push).
+- **Backups:** Full strategic backup completed 2026-01-01 (including GitHub push). Port-mismatch fixed in check scripts 2026-01-03.
 
 ## owner information
 - **Name:** Louis de Souza

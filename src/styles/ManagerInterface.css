@@ -5,12 +5,10 @@
     flex-direction: column;
     height: 100%;
     width: 100%;
-    max-width: 1000px;
-    /* Optimal reading width */
-    margin: 0;
-    /* Keep it left-aligned per user preference */
+    margin: 0 auto;
     position: relative;
-    padding-bottom: 2rem;
+    padding: 0 1rem 1rem 1rem;
+    /* Reduced horizontal padding to prevent cutoff on small screens */
 }
 
 /* Page Header */
@@ -106,17 +104,18 @@
 }
 
 .input-container {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
-    border-radius: 16px;
-    padding: 10px;
+    background: #252535;
+    /* Even lighter for better contrast */
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    border-radius: 12px;
+    padding: 10px 16px;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
+    /* Changed from flex-end for better vertical alignment of icon and text */
     gap: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 240, 255, 0.05);
     transition: all 0.2s ease;
     width: 100%;
-    max-width: 900px;
 }
 
 .input-container:focus-within {
@@ -128,13 +127,18 @@
     flex: 1;
     background: transparent;
     border: none;
-    color: #fff;
+    color: #ffffff;
+    /* Explicit pure white */
     resize: none;
     padding: 10px;
     font-size: 1rem;
     outline: none;
     max-height: 200px;
     font-family: inherit;
+}
+
+.msg-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .msg-bubble pre {

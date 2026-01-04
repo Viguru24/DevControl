@@ -47,8 +47,16 @@
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: var(--space-xl);
+    padding: var(--space-lg);
+    /* Reduced from XL to prevent double-padding with children */
     position: relative;
+}
+
+.view-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Shared Components - Updated for Neon Design */
@@ -167,6 +175,36 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Sidebar Navigation Area */
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    /* Space for scrollbar */
+    margin-bottom: var(--space-md);
+}
+
+/* Custom Scrollbar for Sidebar */
+.sidebar-nav::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    /* Brighter for better visibility */
+    border-radius: 10px;
+}
+
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+    background: var(--neon-cyan-dim);
+    box-shadow: 0 0 5px var(--neon-cyan-glow);
+}
+
 /* Empty State */
 .empty-state {
     grid-column: 1 / -1;
@@ -187,6 +225,13 @@
 }
 
 /* Sidebar Footer Elements */
+.sidebar-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: var(--space-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .sidebar-footer-row {
     display: flex;
     align-items: center;
@@ -258,6 +303,7 @@
 
 /* Logo */
 .sidebar-header {
+    flex-shrink: 0;
     padding-bottom: var(--space-lg);
     margin-bottom: var(--space-lg);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);

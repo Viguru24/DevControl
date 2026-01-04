@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const scriptPath = path.join(__dirname, 'trigger_continue.vbs');
+const scriptPath = path.join(__dirname, 'ghost_finger.ps1');
 
 console.log("🚀 Autopilot Background Service Started");
 console.log("Targeting: Antigravity / DevControl windows");
@@ -18,8 +18,8 @@ const pulse = async () => {
         if (data.enabled) {
             // exec returns a promise wrapper to ensure we wait
             await new Promise((resolve) => {
-                exec(`cscript //NoLogo "${scriptPath}"`, (error, stdout, stderr) => {
-                    if (stdout && stdout.trim() !== "" && !stdout.includes("window not found")) {
+                exec(`powershell -ExecutionPolicy Bypass -File "${scriptPath}"`, (error, stdout, stderr) => {
+                    if (stdout && stdout.trim() !== "") {
                         console.log(`[${new Date().toLocaleTimeString()}] 🚀 ${stdout.trim()}`);
                     }
                     resolve();

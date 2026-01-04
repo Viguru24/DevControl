@@ -1,6 +1,7 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
+const fs = require('fs');
 
 // Explicitly set the app name for taskbar/menus
 app.name = 'DevControl';
@@ -8,32 +9,123 @@ app.name = 'DevControl';
 let mainWindow;
 let zeroTouchWindow;
 let serverProcess;
-let autopilotProcess;
+
+// Zero-Touch State (Port-less)
+let autoModeEnabled = false;
+let autopilotSessionActive = false;
+let pulseTimer = null;
+let isPulseInProgress = false;
 
 const SERVER_PORT = 42424;
 
-// Function to start the autopilot daemon
-function startAutopilot() {
-    const autopilotPath = path.join(__dirname, '../scripts/autopilot_daemon.mjs');
-    console.log('Starting autopilot daemon from:', autopilotPath);
+// Function to start the pulse (Ghost Finger)
+function startPulseLoop() {
+    if (pulseTimer) clearTimeout(pulseTimer);
 
-    // Spawn the autopilot daemon as a child process
-    autopilotProcess = spawn('node', [autopilotPath], {
-        stdio: 'inherit',
-        env: { ...process.env }
-    });
+    const scriptPath = path.join(__dirname, '../scripts/ghost_finger.ps1');
+    const flagPath = path.join(__dirname, '../scripts/AUTOPILOT_ACTIVE.tmp');
 
-    autopilotProcess.on('error', (err) => {
-        console.error('Failed to start autopilot daemon:', err);
-    });
+    const runPulse = () => {
+        // Only proceed if enabled and not already pulsing
+        if (autoModeEnabled && autopilotSessionActive && !isPulseInProgress) {
+            isPulseInProgress = true;
+
+            // Ensure safety flag exists
+            if (!fs.existsSync(flagPath)) fs.writeFileSync(flagPath, 'ACTIVE');
+
+            // Use Focus-Aware PowerShell Ghost Finger
+            exec(`powershell -ExecutionPolicy Bypass -File "${scriptPath}"`, (error, stdout, stderr) => {
+                if (stdout && stdout.includes('Pulsed')) {
+                    console.log(`[GhostFinger] ${stdout.trim()}`);
+                }
+
+                isPulseInProgress = false;
+                // Schedule next pulse only after this one completes
+                pulseTimer = setTimeout(runPulse, 2000);
+            });
+        } else {
+            // Check again in 1.5s if we were idle
+            pulseTimer = setTimeout(runPulse, 1500);
+        }
+    };
+    runPulse();
 }
 
-// Function to start the Express server
+// IPC Handlers for Port-less Operation
+ipcMain.handle('get-auto-mode', () => {
+    return {
+        enabled: autoModeEnabled && autopilotSessionActive,
+        globalEnabled: autoModeEnabled,
+        sessionActive: autopilotSessionActive
+    };
+});
+
+ipcMain.handle('toggle-auto-mode', (event, enabled) => {
+    console.log(`[IPC] Received toggle-auto-mode: ${enabled}`);
+    autoModeEnabled = enabled;
+    autopilotSessionActive = enabled; // In widget mode, we sync these
+
+    const flagPath = path.join(__dirname, '../scripts/AUTOPILOT_ACTIVE.tmp');
+    if (enabled) {
+        if (!fs.existsSync(flagPath)) fs.writeFileSync(flagPath, 'ACTIVE');
+        console.log(`[IPC] Pulse loop ENABLED`);
+    } else {
+        if (fs.existsSync(flagPath)) fs.unlinkSync(flagPath);
+        console.log(`[IPC] Pulse loop DISABLED`);
+    }
+
+    return { success: true, enabled: autoModeEnabled };
+});
+
+ipcMain.handle('sync-instructions', (event, inputInstructions) => {
+    let instructions = inputInstructions;
+    const projectId = 2; // Default to DevControl for now
+
+    if (instructions === "LATEST_FROM_HISTORY") {
+        try {
+            const historyPath = path.join(__dirname, `../server/manager_history_${projectId}.json`);
+            if (fs.existsSync(historyPath)) {
+                const history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+                const lastAssistantMsg = [...history].reverse().find(m => m.role === 'assistant');
+                if (lastAssistantMsg) {
+                    instructions = lastAssistantMsg.content;
+                }
+            }
+        } catch (e) {
+            console.error("Failed to read history for sync:", e);
+        }
+    }
+
+    if (!instructions || instructions === "LATEST_FROM_HISTORY") {
+        return { success: false, error: 'No instructions found to sync' };
+    }
+
+    try {
+        const projectsPath = path.join(__dirname, '../server/projects.json');
+        if (!fs.existsSync(projectsPath)) return { success: false, error: 'No projects found' };
+
+        const projectsData = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
+        let successCount = 0;
+
+        projectsData.forEach(project => {
+            if (project.path && fs.existsSync(project.path)) {
+                const instructionFile = path.join(project.path, '.antigravity-instructions.md');
+                const content = `### MANAGER INSTRUCTIONS [${new Date().toLocaleString()}]\n\n${instructions}\n\n--- \n*Sent via DevControl IPC Bridge*`;
+                fs.writeFileSync(instructionFile, content);
+                successCount++;
+            }
+        });
+        return { success: true, synced: successCount };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+// Function to start the Express server (only for full dashboard)
 function startServer() {
     const serverPath = path.join(__dirname, '../server/index.js');
     console.log('Starting server from:', serverPath);
 
-    // Spawn the Express server as a child process
     serverProcess = spawn('node', [serverPath], {
         stdio: 'inherit',
         env: { ...process.env, PORT: SERVER_PORT, NODE_ENV: 'production' }
@@ -60,7 +152,7 @@ function createZeroTouchWindow() {
         resizable: false,
         skipTaskbar: true,
         focusable: true,
-        type: 'panel', // Utility window to help stay divorced from main app focus
+        type: 'panel',
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             nodeIntegration: false,
@@ -70,7 +162,14 @@ function createZeroTouchWindow() {
     });
 
     const isDev = !app.isPackaged;
-    if (isDev) {
+    const isWidgetOnly = process.argv.includes('--widget-only');
+
+    // Force local file for the HUD to avoid port conflicts unless explicitly in dev mode
+    // and even then, we prefer the build if it exists.
+    if (isWidgetOnly && fs.existsSync(path.join(__dirname, '../dist/index.html'))) {
+        zeroTouchWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { mode: 'zero-touch' } });
+    } else if (isDev) {
+        // In dev, we still need the dev server for the React UI if no build is found
         zeroTouchWindow.loadURL('http://localhost:7777?mode=zero-touch');
     } else {
         zeroTouchWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { mode: 'zero-touch' } });
@@ -136,20 +235,15 @@ if (!gotTheLock) {
         const isDev = !app.isPackaged;
         const isWidgetOnly = process.argv.includes('--widget-only');
 
-        if (!isDev) {
-            startServer();
-        }
-
-        startAutopilot();
-
-        try {
-            // Give server/daemon time to warm up
-            await new Promise(resolve => setTimeout(resolve, 1500));
-        } catch (err) { }
+        // Start pulse loop (Integrated)
+        startPulseLoop();
 
         if (!isWidgetOnly) {
+            // Only start the Express server if we are running the full dashboard
+            startServer();
             createWindow();
         }
+
         createZeroTouchWindow();
 
         app.on('activate', () => {
@@ -162,7 +256,6 @@ if (!gotTheLock) {
 }
 
 app.on('window-all-closed', () => {
-    // DO NOT QUIT if either window is still open
     if (process.platform !== 'darwin' && !zeroTouchWindow && !mainWindow) {
         app.quit();
     }
@@ -170,5 +263,5 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
     if (serverProcess) serverProcess.kill();
-    if (autopilotProcess) autopilotProcess.kill();
+    if (pulseTimer) clearTimeout(pulseTimer);
 });
