@@ -11,7 +11,7 @@
       "Utility",
       "Encryption"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/cosmos-clip",
+    "path": "c:/Users/louis/OneDrive/Documents/GitHub/cosmos-clip",
     "monitorUrl": "http://localhost:5678",
     "loadCmd": "code c:/Users/elois/OneDrive/Documents/GitHub/cosmos-clip",
     "departments": [
@@ -21,7 +21,13 @@
       }
     ],
     "docs": [],
-    "issues": []
+    "issues": [],
+    "ports": [
+      {
+        "label": "App",
+        "value": 5678
+      }
+    ]
   },
   {
     "id": 2,
@@ -36,7 +42,7 @@
       "AI",
       "Groq"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/DevControl",
+    "path": "c:/Users/louis/OneDrive/Documents/GitHub/DevControl",
     "monitorUrl": "http://localhost:7777",
     "departments": [
       {
@@ -49,7 +55,17 @@
       }
     ],
     "docs": [],
-    "issues": []
+    "issues": [],
+    "ports": [
+      {
+        "label": "Dashboard",
+        "value": 7777
+      },
+      {
+        "label": "API",
+        "value": 42424
+      }
+    ]
   },
   {
     "id": 3,
@@ -63,7 +79,7 @@
       "React",
       "PostgreSQL"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/family-basket",
+    "path": "c:/Users/louis/OneDrive/Documents/GitHub/family-basket",
     "monitorUrl": "http://localhost:8888",
     "departments": [],
     "docs": [],
@@ -81,7 +97,7 @@
       "OpenAI",
       "Vite"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/simplewhisper",
+    "path": "c:/Users/louis/OneDrive/Documents/GitHub/simplewhisper",
     "monitorUrl": "",
     "departments": [],
     "docs": [],
@@ -97,7 +113,7 @@
       "Web",
       "Frontend"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/bunny-fun-run",
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/bunny fun run",
     "monitorUrl": "http://localhost:3000",
     "departments": [],
     "docs": [],
@@ -115,7 +131,7 @@
       "PostgreSQL",
       "Stripe"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/micro-meadow",
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/Micro Meadow",
     "monitorUrl": "http://localhost:3002",
     "departments": [],
     "docs": [],
@@ -131,7 +147,7 @@
       "Web",
       "Community"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/caterham-rotary",
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/Caterham Rotary",
     "monitorUrl": "http://localhost:4000",
     "departments": [],
     "docs": [],
@@ -147,7 +163,7 @@
       "Web",
       "Legacy"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/rotary-club-website",
+    "path": "c:/Users/louis/OneDrive/Documents/GitHub/rotary-club-website",
     "monitorUrl": "http://localhost:5000",
     "departments": [],
     "docs": [],
@@ -163,8 +179,128 @@
       "API",
       "Backend"
     ],
-    "path": "c:/Users/elois/OneDrive/Documents/GitHub/local api",
+    "path": "c:/Users/louis/OneDrive/Documents/GitHub/local api",
     "monitorUrl": "http://localhost:3005",
+    "departments": [],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 11,
+    "title": "Cosmo-Clan",
+    "description": "Imported project from Cosmo-Clan",
+    "status": "Imported",
+    "version": "1.0.0",
+    "tags": [
+      "Imported"
+    ],
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/Cosmo-Clan",
+    "monitorUrl": "",
+    "departments": [],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 12,
+    "title": "CosmoVault",
+    "description": "Imported project from CosmoVault",
+    "status": "Imported",
+    "version": "1.0.0",
+    "tags": [
+      "Imported"
+    ],
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/CosmoVault",
+    "monitorUrl": "",
+    "departments": [],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 13,
+    "title": "CosmoWhisper-App",
+    "description": "Imported project from CosmoWhisper-App",
+    "status": "Imported",
+    "version": "1.0.0",
+    "tags": [
+      "Imported"
+    ],
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/CosmoWhisper-App",
+    "monitorUrl": "",
+    "departments": [],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 14,
+    "title": "File Manager",
+    "description": "Imported project from File Manager",
+    "status": "Imported",
+    "version": "1.0.0",
+    "tags": [
+      "Imported"
+    ],
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/File Manager",
+    "monitorUrl": "",
+    "departments": [],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 15,
+    "title": "List",
+    "description": "Imported project from List",
+    "status": "Imported",
+    "version": "1.0.0",
+    "tags": [
+      "Imported"
+    ],
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/List",
+    "monitorUrl": "",
+    "departments": [],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 16,
+    "title": "MailChimp",
+    "description": "Imported project from MailChimp",
+    "status": "Imported",
+    "version": "1.0.0",
+    "tags": [
+      "Imported"
+    ],
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/MailChimp",
+    "monitorUrl": "",
+    "departments": [],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 17,
+    "title": "Trading",
+    "description": "Imported project from Trading",
+    "status": "Imported",
+    "version": "1.0.0",
+    "tags": [
+      "Imported"
+    ],
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/Trading",
+    "monitorUrl": "",
+    "departments": [],
+    "docs": [],
+    "issues": []
+  },
+  {
+    "id": 18,
+    "title": "Word search",
+    "description": "Imported project from Word search",
+    "status": "Imported",
+    "version": "1.0.0",
+    "tags": [
+      "Imported"
+    ],
+    "path": "C:/Users/louis/OneDrive/Documents/GitHub/Word search",
+    "monitorUrl": "",
     "departments": [],
     "docs": [],
     "issues": []

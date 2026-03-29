@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Clock, AlertCircle, CheckCircle, ExternalLink, TrendingUp, Database, Plus } from 'lucide-react';
 import AddProjectModal from './AddProjectModal';
+import PulseFeed from './PulseFeed';
 import '../styles/Dashboard.css';
 
 const DashboardView = ({ projects = [], onProjectClick }) => {
@@ -199,6 +200,8 @@ const DashboardView = ({ projects = [], onProjectClick }) => {
                     </div>
                 </div>
             </div>
+
+            <PulseFeed />
 
             <div className="dashboard-main">
                 <div className="project-status-list">

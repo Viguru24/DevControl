@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Zap } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import '../styles/ZeroTouchWidget.css';
 
 const ZeroTouchWidget = () => {
-    const [status, setStatus] = useState({ enabled: false, sessionActive: false });
+    const [status, setStatus] = useState({ enabled: true, sessionActive: true });
     const [isToggling, setToggling] = useState(false);
 
     const checkStatus = async () => {
@@ -66,8 +66,10 @@ const ZeroTouchWidget = () => {
         }
     };
 
+    const isStandalone = window.location.search.includes('mode=zero-touch');
+
     return (
-        <div className="zt-widget-container">
+        <div className={`zt-widget-container ${isStandalone ? 'standalone' : ''}`}>
             <button
                 className={`zt-widget-orb ${status.enabled ? 'on' : 'off'} ${status.sessionActive ? 'active' : ''}`}
                 onClick={(e) => {
@@ -91,7 +93,7 @@ const ZeroTouchWidget = () => {
                 title={status.enabled ? "Zero-Touch: Active" : "Zero-Touch: Off"}
             >
                 <div className="zt-orb-content">
-                    <Zap size={20} className={status.sessionActive ? 'pulse-zap' : ''} />
+                    <Globe size={20} className={status.sessionActive ? 'pulse-zap' : ''} />
                     <span className="zt-status-text">{status.enabled ? 'READY' : 'OFF'}</span>
                 </div>
                 <div className="zt-orb-ring"></div>

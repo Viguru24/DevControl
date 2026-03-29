@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Rocket, LayoutGrid, Sparkles, Zap, Pause } from 'lucide-react';
+import { Layers, Rocket, LayoutGrid, Sparkles, Zap, Pause, Terminal, Book, Shield, Settings } from 'lucide-react';
+import ZeroTouchController from './ZeroTouchController';
+import ZeroTouchWidget from './ZeroTouchWidget';
+import ZeroTouchHUD from './ZeroTouchHUD';
 import ThemeSwitcher from './ThemeSwitcher';
 import '../styles/Layout.css';
+import CommandPalette from './CommandPalette';
 
 const Layout = ({ children, currentView, setCurrentView, projects = [], selectedProjectId, setSelectedProjectId }) => {
     const [time, setTime] = useState(new Date());
     const [autoModeStatus, setAutoModeStatus] = useState({ enabled: false, globalEnabled: false, sessionActive: false });
+    const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 1000);
@@ -18,11 +23,21 @@ const Layout = ({ children, currentView, setCurrentView, projects = [], selected
         };
 
         checkAutoMode();
-        const autoTimer = setInterval(checkAutoMode, 2000); // Check every 2 seconds
+        const autoTimer = setInterval(checkAutoMode, 2000);
+
+        const handleGlobalParams = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                setIsPaletteOpen(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalParams);
 
         return () => {
             clearInterval(timer);
             clearInterval(autoTimer);
+            window.removeEventListener('keydown', handleGlobalParams);
         };
     }, []);
 
@@ -43,16 +58,26 @@ const Layout = ({ children, currentView, setCurrentView, projects = [], selected
 
     const formatTime = (date) => date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' });
 
+    const handlePaletteNavigate = (view, projectId) => {
+        if (projectId) {
+            setSelectedProjectId(projectId);
+            setCurrentView('manager');
+        } else {
+            setCurrentView(view);
+        }
+    };
+
     return (
         <div className="layout-container">
+            <CommandPalette
+                isOpen={isPaletteOpen}
+                onClose={() => setIsPaletteOpen(false)}
+                projects={projects}
+                onNavigate={handlePaletteNavigate}
+                onToggleAuto={toggleAutoMode}
+                autoStatus={autoModeStatus}
+            />
             <aside className="sidebar">
-                <div className="sidebar-header">
-                    <div className="logo">
-                        <Rocket className="logo-icon" size={24} />
-                        <span className="logo-text">DevControl</span>
-                    </div>
-                </div>
-
 
                 <div className="sidebar-nav">
                     <nav className="nav-section">
@@ -63,13 +88,7 @@ const Layout = ({ children, currentView, setCurrentView, projects = [], selected
                     </nav>
 
                     <nav className="nav-section">
-                        <div className="section-label">Intelligence</div>
-                        <button className={`nav-item ${currentView === 'manager' ? 'active' : ''}`} onClick={() => setCurrentView('manager')}>
-                            <Sparkles size={18} /> <span>Strategy Manager</span>
-                        </button>
-                        <button className={`nav-item ${currentView === 'protocols' ? 'active' : ''}`} onClick={() => setCurrentView('protocols')}>
-                            <Layers size={18} /> <span>Knowledge Base</span>
-                        </button>
+                        <div className="nav-group-label" style={{ marginTop: '1rem' }}>Projects</div>
                         <div className="nav-group">
                             {projects.map(p => (
                                 <button
@@ -85,6 +104,12 @@ const Layout = ({ children, currentView, setCurrentView, projects = [], selected
                                 </button>
                             ))}
                         </div>
+                    </nav>
+
+                    <nav className="nav-section" style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                        <button className={`nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => setCurrentView('settings')}>
+                            <Settings size={18} /> <span>Security Settings</span>
+                        </button>
                     </nav>
                 </div>
 
@@ -116,6 +141,9 @@ const Layout = ({ children, currentView, setCurrentView, projects = [], selected
                     {children}
                 </main>
             </div>
+            <ZeroTouchController />
+            <ZeroTouchHUD />
+            <ZeroTouchWidget />
         </div>
     );
 };

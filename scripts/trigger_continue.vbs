@@ -37,13 +37,13 @@ If fso.FileExists(flagFile) Then
         ' We use a loop here to try and "catch" multiple windows if possible
         ' though AppActivate is limited, cycling through specific->general helps.
         If WshShell.AppActivate(t) Then
-            WScript.Sleep 400 ' Focus settle
+            WScript.Sleep 100 ' Focus settle
             
             ' Pulse keys
             WshShell.SendKeys "%{ENTER}" 
-            WScript.Sleep 100
+            WScript.Sleep 50
             WshShell.SendKeys "^{ENTER}"
-            WScript.Sleep 100
+            WScript.Sleep 50
             WshShell.SendKeys "{ENTER}"
             
             WScript.Echo "Zero-Touch: Pulsed [" & t & "]"

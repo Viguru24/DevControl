@@ -1,16 +1,19 @@
 @echo off
 TITLE DevControl: Zero-Touch Launcher
-echo [1/3] Cleaning up old sessions...
-taskkill /F /IM node.exe /T >nul 2>&1
-taskkill /F /IM electron.exe /T >nul 2>&1
+cd /d "%~dp0"
+
+echo [1/3] Cleaning up old autopilot instances and temp files...
 taskkill /F /IM cscript.exe /F >nul 2>&1
+wmic process where "CommandLine like '%%ghost_finger.ps1%%'" call terminate >nul 2>&1
+wmic process where "CommandLine like '%%ZeroTouchHUD.ps1%%'" call terminate >nul 2>&1
+del /q "scripts\*.tmp" >nul 2>&1
+del /q "*.tmp" >nul 2>&1
+del /q "*.html" >nul 2>&1
 
-echo [2/3] Warming up the Ghost Finger...
-START /B npm run electron:dev >nul 2>&1
+echo [2/3] Launching Zero-Touch Globe (Force-On Mode)...
+start /min "" npx electron . --widget-only --force-on
 
-echo [3/3] Zero-Touch HUD Is Loading!
 echo.
-echo The orb will appear in the bottom-right corner shortly.
-echo You can close this window at any time.
-echo.
-pause
+echo Launching Zero-Touch Interface.
+timeout /t 3
+exit

@@ -1,9 +1,9 @@
 @echo off
 TITLE DevControl: Zero-Touch Shutdown
-echo Cleaning up all Zero-Touch processes...
-taskkill /F /IM node.exe /T >nul 2>&1
-taskkill /F /IM electron.exe /T >nul 2>&1
+echo [1/1] Releasing the Ghost Finger...
 taskkill /F /IM cscript.exe /F >nul 2>&1
+rem We don't kill electron.exe here to avoid closing other instances.
+rem The user can close the HUD window manually if it stays open.
 echo.
 echo Ghost Finger has been retired.
 echo.

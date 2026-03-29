@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, ShieldCheck, ShieldAlert, MousePointer2, Move, X } from 'lucide-react';
+import { Globe, ShieldCheck, ShieldAlert, MousePointer2, Move, X } from 'lucide-react';
 import '../styles/ZeroTouchController.css';
 
-const ZeroTouchController = () => {
-    const [status, setStatus] = useState({ enabled: false, sessionActive: false });
+const ZeroTouchController = ({ isWidget }) => {
+    const [status, setStatus] = useState({ enabled: true, sessionActive: true });
     const [isHovered, setIsHovered] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
 
     const checkStatus = async () => {
         try {
-            const res = await fetch('http://localhost:42424/api/auto-mode');
-            const data = await res.json();
-            setStatus({ enabled: data.globalEnabled, sessionActive: data.sessionActive });
+            if (window.electronAPI) {
+                const data = await window.electronAPI.getAutoMode();
+                setStatus({ enabled: data.globalEnabled, sessionActive: data.sessionActive });
+            } else {
+                // Fallback for web-based development
+                const res = await fetch('http://localhost:42424/api/auto-mode');
+                const data = await res.json();
+                setStatus({ enabled: data.globalEnabled, sessionActive: data.sessionActive });
+            }
         } catch (err) {
             console.error("Failed to check zero-touch status:", err);
         }
@@ -25,31 +31,41 @@ const ZeroTouchController = () => {
 
     const toggleMode = async () => {
         const newState = !status.enabled;
+        // Optimistic update
+        setStatus(prev => ({ ...prev, enabled: newState, sessionActive: newState }));
+
         try {
-            const res = await fetch('http://localhost:42424/api/auto-mode', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: newState })
-            });
-            if (res.ok) {
-                setStatus(prev => ({ ...prev, enabled: newState }));
+            if (window.electronAPI) {
+                await window.electronAPI.toggleAutoMode(newState);
+            } else {
+                const res = await fetch('http://localhost:42424/api/auto-mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: newState })
+                });
+                if (!res.ok) {
+                    // Revert on failure
+                    setStatus(prev => ({ ...prev, enabled: !newState, sessionActive: !newState }));
+                }
             }
         } catch (err) {
             console.error("Toggle error:", err);
+            // Revert on error
+            setStatus(prev => ({ ...prev, enabled: !newState, sessionActive: !newState }));
         }
     };
 
     if (isMinimized) {
         return (
-            <div className={`zt-mini-fab ${status.sessionActive ? 'active' : ''}`} onClick={() => setIsMinimized(false)}>
-                <Zap size={20} />
+            <div className={`zt-mini-fab ${status.sessionActive ? 'active' : ''} ${isWidget ? 'widget-mode' : ''}`} onClick={() => setIsMinimized(false)}>
+                <Bot size={20} />
             </div>
         );
     }
 
     return (
         <div
-            className={`zt-controller-floating ${status.enabled ? 'enabled' : 'disabled'} ${status.sessionActive ? 'session-active' : ''}`}
+            className={`zt-controller-floating ${status.enabled ? 'enabled' : 'disabled'} ${status.sessionActive ? 'session-active' : ''} ${isWidget ? 'widget-mode' : ''}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
@@ -69,7 +85,7 @@ const ZeroTouchController = () => {
                     onClick={toggleMode}
                 >
                     <div className="zt-orb-inner">
-                        <Zap size={32} className={status.sessionActive ? 'pulse-zap' : ''} />
+                        <Globe size={24} className={status.sessionActive ? 'pulse-zap' : ''} />
                     </div>
                     <div className="zt-glow-ring"></div>
                 </button>
@@ -79,7 +95,7 @@ const ZeroTouchController = () => {
                         {status.sessionActive ? (
                             <><ShieldCheck size={14} /> <span>ACTIVE</span></>
                         ) : status.enabled ? (
-                            <><Zap size={14} /> <span>STANDBY</span></>
+                            <><Globe size={14} /> <span>STANDBY</span></>
                         ) : (
                             <><ShieldAlert size={14} /> <span>OFF</span></>
                         )}

@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Trash2, PlusSquare, Sparkles, AlertCircle, Rocket, RefreshCw, Copy, Check, Brain, Mic, MicOff, Volume2, VolumeX, Settings2 } from 'lucide-react';
+import {
+    Send, Bot, User, Trash2, PlusSquare, Sparkles, AlertCircle, Rocket,
+    RefreshCw, Copy, Check, Brain, Mic, MicOff, Volume2, VolumeX, Settings2,
+    Shield, FileText, ChevronRight, Book, ExternalLink, Code, BarChart2, MoreVertical, Lock
+} from 'lucide-react';
+import ProjectVault from './ProjectVault';
+import DeleteProjectModal from './DeleteProjectModal';
 import Markdown from 'react-markdown';
 import '../styles/ManagerInterface.css';
 
-const ManagerInterface = ({ activeProjectId, availableProjects }) => {
+const ManagerInterface = ({ activeProjectId, availableProjects, onLaunchConsole }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +43,10 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
     const audioChunksRef = useRef([]);
     const messagesEndRef = useRef(null);
     const lastSpokenIdRef = useRef(null);
+    const [activeSubView, setActiveSubView] = useState('overview'); // Changed default to 'overview'
+    const [projectDocs, setProjectDocs] = useState([]);
+    const [selectedDoc, setSelectedDoc] = useState(null);
+    const [projectToDelete, setProjectToDelete] = useState(null);
     const audioRef = useRef(new Audio());
     const isRecordingRef = useRef(false);
 
@@ -77,9 +87,31 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
             setMessages([]); // Visual clear
             await loadHistory(activeProjectId);
             await loadContext(false, activeProjectId);
+            await loadProjectDocs(activeProjectId);
         };
         sync();
     }, [activeProjectId]);
+
+    const loadProjectDocs = async (projectId) => {
+        const id = projectId || activeProjectId;
+        const project = availableProjects.find(p => String(p.id) === String(id));
+        if (!project) return;
+
+        try {
+            const res = await fetch('http://localhost:42424/api/documentation');
+            const allDocs = await res.json();
+
+            // Filter docs belonging to this project (or System docs)
+            const filtered = allDocs.filter(d =>
+                d.project === project.title || d.project === 'DevControl'
+            );
+
+            setProjectDocs(filtered);
+            if (filtered.length > 0) setSelectedDoc(filtered[0]);
+        } catch (e) {
+            console.error("Failed to load project docs", e);
+        }
+    };
 
     // Voice Discovery
     useEffect(() => {
@@ -365,7 +397,7 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
             if (data.success) {
                 // Paste the instruction directly into the chat input
                 setInput(`📋 **Instruction from Manager:**\n\n${content}`);
-                alert("Instruction pasted into chat! Review and send when ready.");
+                console.log("Instruction pasted into chat.");
             } else {
                 throw new Error(data.error);
             }
@@ -507,7 +539,7 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
             });
             const data = await res.json();
             if (data.success) {
-                alert(`🚀 Synchronization Complete!\nInstructions pushed to ${data.synced} projects.`);
+                console.log(`🚀 Synchronization Complete! Instructions pushed to ${data.synced} projects.`);
             }
         } catch (e) {
             alert("Sync Bridge failed: " + e.message);
@@ -527,6 +559,60 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
             setMessages([]);
         }
     };
+
+    const handleDeleteProject = async (id, mode, confirmName) => {
+        try {
+            const res = await fetch(`http://localhost:42424/api/projects/${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode, confirmName })
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (err) {
+            console.error('Failed to delete project:', err);
+            throw err;
+        }
+    };
+
+    const handleKillPort = async (port) => {
+        if (!process.env.NODE_ENV && !window.confirm(`Force kill process on port ${port}? This may lose unsaved data.`)) return;
+
+        try {
+            const res = await fetch('http://localhost:42424/api/kill-port', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ port, projectId: activeProjectId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`Port ${port} cleared successfully.`);
+            } else {
+                alert(`Failed: ${data.error}`);
+            }
+        } catch (e) {
+            console.error("Kill port failed", e);
+        }
+    };
+
+
+    const handleOpenExplorer = async (path) => {
+        try {
+            await fetch('http://localhost:42424/api/open-explorer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path })
+            });
+        } catch (e) {
+            console.error("Open explorer failed", e);
+        }
+    };
+
+    const activeProject = availableProjects.find(p => p.id === activeProjectId) || {};
 
     return (
         <div className="manager-page animate-fade">
@@ -555,92 +641,299 @@ const ManagerInterface = ({ activeProjectId, availableProjects }) => {
                 </div>
             </header>
 
-            <div className="chat-history">
-                {messages.map((msg, idx) => {
-                    const messageId = msg.id || `msg-${idx}`;
-                    return (
-                        <div key={messageId} className={`msg-wrapper ${msg.role}`}>
-                            <div className="msg-avatar">
-                                {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
-                            </div>
-                            <div className="msg-bubble">
-                                <Markdown>{msg.content}</Markdown>
+            <div className="inner-layout">
+                <aside className="inner-sidebar">
+                    <button
+                        className={`inner-nav-item ${activeSubView === 'overview' ? 'active' : ''}`}
+                        onClick={() => setActiveSubView('overview')}
+                    >
+                        <BarChart2 className="nav-icon" size={18} />
+                        <span>Overview</span>
+                    </button>
+                    <button
+                        className={`inner-nav-item ${activeSubView === 'knowledge' ? 'active' : ''}`}
+                        onClick={() => setActiveSubView('knowledge')}
+                    >
+                        <Brain className="nav-icon" size={18} />
+                        <span>Knowledge Base</span>
+                    </button>
+                    <button
+                        className={`inner-nav-item ${activeSubView === 'technical' ? 'active' : ''}`}
+                        onClick={() => setActiveSubView('technical')}
+                    >
+                        <Shield className="nav-icon" size={18} />
+                        <span>Technical Info</span>
+                    </button>
+                    <button
+                        className={`inner-nav-item ${activeSubView === 'security' ? 'active' : ''}`}
+                        onClick={() => setActiveSubView('security')}
+                    >
+                        <Lock className="nav-icon" size={18} />
+                        <span>Secure Area</span>
+                    </button>
+                </aside>
 
-                                <div className="message-actions" style={{ marginTop: '1rem', display: 'flex', gap: '10px' }}>
-                                    <button
-                                        className="dock-btn"
-                                        style={{ width: 'auto', padding: '0 10px', height: '30px', fontSize: '0.7rem' }}
-                                        onClick={() => handleCopy(msg.content, messageId)}
-                                    >
-                                        <Copy size={12} />
-                                        <span>{copyingId === messageId ? 'Copied' : 'Copy'}</span>
-                                    </button>
-                                    {msg.role === 'assistant' && (
+                <main className="inner-view-content">
+                    {activeSubView === 'overview' && (
+                        <div className="project-overview-panel glass-panel animate-fade">
+                            <div className="overview-header">
+                                <div className="overview-title">
+                                    <div className="overview-icon-bg">
+                                        <Rocket size={24} color="var(--neon-cyan)" />
+                                    </div>
+                                    <div className="title-stack">
+                                        <h2>{activeProject.title}</h2>
+                                        <p>{activeProject.description}</p>
+                                    </div>
+                                </div>
+                                <span className={`infra-status-pill ${activeProject.status?.toLowerCase()}`}>
+                                    {activeProject.status}
+                                </span>
+                            </div>
+
+                            <div className="overview-grid">
+                                <div className="metric-card">
+                                    <span className="metric-label">Version control</span>
+                                    <span className="metric-value">v{activeProject.version || '1.0.0'}</span>
+                                </div>
+                                <div className="metric-card" style={{ gridRow: activeProject.ports ? 'span 2' : 'auto' }}>
+                                    <span className="metric-label">Port Assignment</span>
+                                    <div className="ports-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px' }}>
+                                        {activeProject.ports ? (
+                                            activeProject.ports.map((p, idx) => (
+                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '4px' }}>
+                                                    <span style={{ fontSize: '0.75rem', opacity: 0.7, textTransform: 'uppercase' }}>{p.label}</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span className="metric-value font-mono" style={{ fontSize: '0.9rem' }}>{p.value}</span>
+                                                        <button
+                                                            className="dock-btn danger"
+                                                            style={{ padding: '4px', height: '24px', width: '24px', minWidth: 'unset' }}
+                                                            onClick={() => handleKillPort(p.value)}
+                                                            title={`Kill Port ${p.value}`}
+                                                        >
+                                                            <VolumeX size={12} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                                <span className="metric-value">
+                                                    {activeProject.monitorUrl ? (activeProject.monitorUrl.match(/:(\d+)/)?.[1] || 'N/A') : 'Local'}
+                                                </span>
+                                                {activeProject.monitorUrl && activeProject.monitorUrl.match(/:(\d+)/)?.[1] && (
+                                                    <button
+                                                        className="dock-btn danger"
+                                                        style={{ padding: '2px 8px', fontSize: '0.7rem', height: '24px' }}
+                                                        onClick={() => handleKillPort(activeProject.monitorUrl.match(/:(\d+)/)[1])}
+                                                        title="Kill Process"
+                                                    >
+                                                        <VolumeX size={12} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="metric-card">
+                                    <span className="metric-label">Operational uptime</span>
+                                    <span className="metric-value">{activeProject.uptime || '99.9%'}</span>
+                                </div>
+                                <div
+                                    className="metric-card path-card interactive-card"
+                                    onClick={() => handleOpenExplorer(activeProject.path)}
+                                    title="Click to open in Explorer"
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <span className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Deployment path <ExternalLink size={10} opacity={0.6} />
+                                    </span>
+                                    <div className="path-stack" style={{ overflowX: 'auto', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                                        <Code size={14} style={{ flexShrink: 0 }} />
+                                        <code>{activeProject.path}</code>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="tags-section">
+                                <h4 className="section-title">ASSOCIATED VECTORS</h4>
+                                <div className="tags-list">
+                                    {activeProject.tags?.map(tag => (
+                                        <span key={tag} className="infra-tag">#{tag}</span>
+                                    )) || <span className="text-muted">No tags assigned</span>}
+                                </div>
+                            </div>
+
+                            <div className="overview-actions">
+                                <button className="dock-btn danger" onClick={() => setProjectToDelete(activeProject)}>
+                                    <Trash2 size={18} />
+                                    <span>Initiate Deletion</span>
+                                </button>
+                                <button className="dock-btn primary" onClick={() => {
+                                    onLaunchConsole(activeProject.id);
+                                    setActiveSubView('knowledge');
+                                }}>
+                                    <ExternalLink size={18} />
+                                    <span>Launch Environment</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSubView === 'knowledge' && (
+                        <div className="knowledge-grid">
+                            <div className="chat-panel">
+                                <div className="chat-history">
+                                    {messages.map((msg, idx) => {
+                                        const messageId = msg.id || `msg-${idx}`;
+                                        return (
+                                            <div key={messageId} className={`msg-wrapper ${msg.role}`}>
+                                                <div className="msg-avatar">
+                                                    {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
+                                                </div>
+                                                <div className="msg-bubble">
+                                                    <Markdown>{msg.content}</Markdown>
+
+                                                    <div className="message-actions">
+                                                        <button
+                                                            className="dock-btn"
+                                                            onClick={() => handleCopy(msg.content, messageId)}
+                                                        >
+                                                            <Copy size={12} />
+                                                            <span>{copyingId === messageId ? 'Copied' : 'Copy'}</span>
+                                                        </button>
+                                                        {msg.role === 'assistant' && (
+                                                            <button
+                                                                className="dock-btn"
+                                                                onClick={() => handleDispatch(msg.content, idx)}
+                                                            >
+                                                                <Rocket size={12} />
+                                                                <span>Send to Agent</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {isLoading && (
+                                        <div className="msg-wrapper assistant">
+                                            <div className="msg-avatar"><RefreshCw size={20} className="rotate-anim" /></div>
+                                            <div className="msg-bubble" style={{ fontStyle: 'italic', opacity: 0.6 }}>
+                                                Processing strategic vectors...
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                <div className="input-dock">
+                                    <div className="input-container">
                                         <button
-                                            className="dock-btn"
-                                            style={{ width: 'auto', padding: '0 10px', height: '30px', fontSize: '0.7rem' }}
-                                            onClick={() => handleDispatch(msg.content, idx)}
+                                            className={`dock-btn ${isRecording ? 'active' : ''}`}
+                                            onClick={() => isRecording ? stopRecording() : startRecording()}
                                         >
-                                            <Rocket size={12} />
-                                            <span>Send to Agent</span>
+                                            {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
                                         </button>
+
+                                        <textarea
+                                            className="msg-input"
+                                            placeholder="Initiate directive..."
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            rows={1}
+                                        />
+
+                                        <div className="dock-actions">
+                                            <button className="dock-btn" onClick={() => setShowVoiceSettings(!showVoiceSettings)}>
+                                                <Settings2 size={18} />
+                                            </button>
+                                            <button className="dock-btn btn-send" onClick={handleSend} disabled={isLoading}>
+                                                <Send size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {showVoiceSettings && (
+                                        <div className="voice-settings-popover">
+                                            <div className="setting-group">
+                                                <label>Voice Identity</label>
+                                                <select value={selectedVoiceURI} onChange={(e) => setSelectedVoiceURI(e.target.value)}>
+                                                    {availableVoices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
+
+                            <div className="doc-management-panel">
+                                <div className="doc-panel-header">
+                                    <FileText size={18} color="var(--neon-cyan)" />
+                                    <h3>Document Management System</h3>
+                                </div>
+                                <div className="doc-list">
+                                    {projectDocs.map(doc => (
+                                        <div
+                                            key={doc.path}
+                                            className={`doc-item ${selectedDoc?.path === doc.path ? 'active' : ''}`}
+                                            onClick={() => setSelectedDoc(doc)}
+                                        >
+                                            <Book size={16} />
+                                            <div className="doc-item-info">
+                                                <span className="doc-item-name">{doc.name.replace('.md', '')}</span>
+                                                <span className="doc-item-meta">{doc.path}</span>
+                                            </div>
+                                            <ChevronRight size={14} opacity={0.5} />
+                                        </div>
+                                    ))}
+                                </div>
+                                {selectedDoc && (
+                                    <div className="doc-viewer markdown-content">
+                                        <div style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
+                                            <h2 style={{ fontSize: '1.2rem', color: 'var(--neon-cyan)' }}>{selectedDoc.name}</h2>
+                                        </div>
+                                        <Markdown>{selectedDoc.content}</Markdown>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    );
-                })}
-                {isLoading && (
-                    <div className="msg-wrapper assistant">
-                        <div className="msg-avatar"><RefreshCw size={20} className="rotate-anim" /></div>
-                        <div className="msg-bubble" style={{ fontStyle: 'italic', opacity: 0.6 }}>
-                            Processing strategic vectors...
+                    )}
+
+                    {activeSubView === 'technical' && (
+                        <div className="glass-panel animate-fade" style={{ padding: '2rem' }}>
+                            <h2 style={{ color: 'var(--neon-cyan)', marginBottom: '1rem' }}>Technical Specifications</h2>
+                            <div className="tech-specs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                <div className="metric-card">
+                                    <span className="metric-label">Node Environment</span>
+                                    <span className="metric-value">v20.10.0</span>
+                                </div>
+                                <div className="metric-card">
+                                    <span className="metric-label">React Version</span>
+                                    <span className="metric-value">v18.2.0</span>
+                                </div>
+                                <div className="metric-card">
+                                    <span className="metric-label">Heap Allocation</span>
+                                    <span className="metric-value">1024 MB</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
+                    )}
+
+                    {activeSubView === 'security' && (
+                        <ProjectVault projectId={activeProjectId} />
+                    )}
+                </main>
             </div>
 
-            <div className="input-dock">
-                <div className="input-container">
-                    <button
-                        className={`dock-btn ${isRecording ? 'active' : ''}`}
-                        onClick={() => isRecording ? stopRecording() : startRecording()}
-                    >
-                        {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
-                    </button>
-
-                    <textarea
-                        className="msg-input"
-                        placeholder="Initiate directive..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        rows={1}
-                    />
-
-                    <div className="dock-actions">
-                        <button className="dock-btn" onClick={() => setShowVoiceSettings(!showVoiceSettings)}>
-                            <Settings2 size={18} />
-                        </button>
-                        <button className="dock-btn btn-send" onClick={handleSend} disabled={isLoading}>
-                            <Send size={18} />
-                        </button>
-                    </div>
-                </div>
-
-                {showVoiceSettings && (
-                    <div className="voice-settings-popover" style={{ bottom: '80px', right: '0' }}>
-                        {/* Voice settings content remains similar but styled by the new popover class if needed */}
-                        <div className="setting-group">
-                            <label>Voice Identity</label>
-                            <select value={selectedVoiceURI} onChange={(e) => setSelectedVoiceURI(e.target.value)}>
-                                {availableVoices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                )}
-            </div>
+            {projectToDelete && (
+                <DeleteProjectModal
+                    project={projectToDelete}
+                    onClose={() => setProjectToDelete(null)}
+                    onDelete={handleDeleteProject}
+                />
+            )}
         </div>
     );
 };

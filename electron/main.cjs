@@ -4,15 +4,17 @@ const { spawn, exec } = require('child_process');
 const fs = require('fs');
 
 // Explicitly set the app name for taskbar/menus
-app.name = 'DevControl';
+app.setAppUserModelId('com.devcontrol.missioncontrol');
+app.name = 'DevControl_MissionControl';
+app.commandLine.appendSwitch('remote-debugging-port', '9224');
 
 let mainWindow;
 let zeroTouchWindow;
 let serverProcess;
 
 // Zero-Touch State (Port-less)
-let autoModeEnabled = false;
-let autopilotSessionActive = false;
+let autoModeEnabled = true;
+let autopilotSessionActive = true;
 let pulseTimer = null;
 let isPulseInProgress = false;
 
@@ -25,6 +27,11 @@ function startPulseLoop() {
     const scriptPath = path.join(__dirname, '../scripts/ghost_finger.ps1');
     const flagPath = path.join(__dirname, '../scripts/AUTOPILOT_ACTIVE.tmp');
 
+    // Startup: Ensure flag exists if enabled by default
+    if (autoModeEnabled && autopilotSessionActive) {
+        if (!fs.existsSync(flagPath)) fs.writeFileSync(flagPath, 'ACTIVE');
+    }
+
     const runPulse = () => {
         // Only proceed if enabled and not already pulsing
         if (autoModeEnabled && autopilotSessionActive && !isPulseInProgress) {
@@ -34,18 +41,37 @@ function startPulseLoop() {
             if (!fs.existsSync(flagPath)) fs.writeFileSync(flagPath, 'ACTIVE');
 
             // Use Focus-Aware PowerShell Ghost Finger
-            exec(`powershell -ExecutionPolicy Bypass -File "${scriptPath}"`, (error, stdout, stderr) => {
-                if (stdout && stdout.includes('Pulsed')) {
-                    console.log(`[GhostFinger] ${stdout.trim()}`);
+            exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 8000 }, (error, stdout, stderr) => {
+                if (error) {
+                    if (error.killed) {
+                        console.error(`[GhostFinger] Script timed out! Check for blocking processes.`);
+                    } else {
+                        console.error(`[GhostFinger] Execution error: ${error.message}`);
+                    }
+                }
+
+                if (stdout) {
+                    const output = stdout.trim();
+                    if (output.includes('Pulsed')) {
+                        console.log(`[GhostFinger] SUCCESS: ${output}`);
+                    } else if (output.includes('Safety-Lock')) {
+                        console.warn(`[GhostFinger] SAFETY: ${output}`);
+                    } else if (output.includes('MATCH FOUND')) {
+                        console.log(`[GhostFinger] DETECTED: ${output}`);
+                    }
+                }
+                
+                if (stderr) {
+                    console.error(`[GhostFinger] PS Error: ${stderr.trim()}`);
                 }
 
                 isPulseInProgress = false;
                 // Schedule next pulse only after this one completes
-                pulseTimer = setTimeout(runPulse, 2000);
+                pulseTimer = setTimeout(runPulse, 1000);
             });
         } else {
-            // Check again in 1.5s if we were idle
-            pulseTimer = setTimeout(runPulse, 1500);
+            // Check again in 1s if we were inactive
+            pulseTimer = setTimeout(runPulse, 1000);
         }
     };
     runPulse();
@@ -152,7 +178,6 @@ function createZeroTouchWindow() {
         resizable: false,
         skipTaskbar: true,
         focusable: true,
-        type: 'panel',
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             nodeIntegration: false,
@@ -164,12 +189,11 @@ function createZeroTouchWindow() {
     const isDev = !app.isPackaged;
     const isWidgetOnly = process.argv.includes('--widget-only');
 
-    // Force local file for the HUD to avoid port conflicts unless explicitly in dev mode
-    // and even then, we prefer the build if it exists.
-    if (isWidgetOnly && fs.existsSync(path.join(__dirname, '../dist/index.html'))) {
+    // Force local file for the HUD to avoid port conflicts
+    if (fs.existsSync(path.join(__dirname, '../dist/index.html'))) {
         zeroTouchWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { mode: 'zero-touch' } });
     } else if (isDev) {
-        // In dev, we still need the dev server for the React UI if no build is found
+        // In dev, only use the dev server if no build is found at all
         zeroTouchWindow.loadURL('http://localhost:7777?mode=zero-touch');
     } else {
         zeroTouchWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { mode: 'zero-touch' } });
@@ -223,17 +247,36 @@ if (!gotTheLock) {
     app.quit();
 } else {
     app.on('second-instance', (event, commandLine, workingDirectory) => {
+        const isWidgetRequest = commandLine.includes('--widget-only');
+
         if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
             mainWindow.focus();
-        } else {
+        } else if (!isWidgetRequest) {
             createWindow();
+        }
+
+        if (zeroTouchWindow) {
+            if (zeroTouchWindow.isMinimized()) zeroTouchWindow.restore();
+            zeroTouchWindow.show();
+            zeroTouchWindow.focus();
+        } else {
+            createZeroTouchWindow();
         }
     });
 
     app.whenReady().then(async () => {
         const isDev = !app.isPackaged;
         const isWidgetOnly = process.argv.includes('--widget-only');
+        const forceOn = process.argv.includes('--force-on');
+
+        if (forceOn) {
+            console.log("[ZeroTouch] Startup: FORCE-ON Flag detected. Overriding to ACTIVE.");
+            autoModeEnabled = true;
+            autopilotSessionActive = true;
+            const flagPath = path.join(__dirname, '../scripts/AUTOPILOT_ACTIVE.tmp');
+            if (!fs.existsSync(flagPath)) fs.writeFileSync(flagPath, 'ACTIVE');
+        }
 
         // Start pulse loop (Integrated)
         startPulseLoop();

@@ -13,21 +13,30 @@ import { createMasterBackup, listMasterBackups, restoreMasterBackup } from './ma
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECTS_FILE = path.join(__dirname, 'projects.json');
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+
+let serverConfig = { masterPassword: 'DevControl2026' };
+try {
+    if (fs.existsSync(CONFIG_FILE)) {
+        serverConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    }
+} catch (e) {
+    console.error("Failed to load server config:", e);
+}
+
+const saveConfig = () => {
+    try {
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(serverConfig, null, 4));
+    } catch (e) {
+        console.error("Failed to save server config:", e);
+    }
+};
 
 // Auto-mode state
 const STATE_FILE = path.join(__dirname, '..', 'scripts', 'auto_mode_state.json');
-let autoModeEnabled = false;
-let autopilotSessionActive = false;
+let autoModeEnabled = true;
+let autopilotSessionActive = true;
 let sessionTimeout = null;
-
-// Load persisted state
-try {
-    if (fs.existsSync(STATE_FILE)) {
-        const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
-        autoModeEnabled = state.enabled || false;
-        autopilotSessionActive = state.active || false;
-    }
-} catch (e) { }
 
 const saveAutoState = () => {
     try {
@@ -38,17 +47,35 @@ const saveAutoState = () => {
     } catch (e) { }
 };
 
+// Load persisted state
+try {
+    if (fs.existsSync(STATE_FILE)) {
+        const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+        autoModeEnabled = state.enabled !== undefined ? state.enabled : true;
+        autopilotSessionActive = state.active !== undefined ? state.active : true;
+    } else {
+        // Init default state
+        saveAutoState();
+    }
+} catch (e) { }
+
+
+
 const defaultProjects = [
     {
         id: 1,
-        title: "DevControl Dashboard",
+        title: "Cosmos Clip",
+        monitorUrl: "http://localhost:5678",
+        ports: [
+            { label: "App", value: 5678 }
+        ],
+        // ... rest of Cosmos Clip properties
         description: "Advanced clipboard manager with backup encryption and history tracking.",
         status: "Active",
         version: "1.2.2",
         tags: ["Electron", "React", "Utility", "Encryption"],
-        path: "c:/Users/elois/OneDrive/Documents/GitHub/cosmos-clip",
-        monitorUrl: "http://localhost:5678",
-        loadCmd: "code c:/Users/elois/OneDrive/Documents/GitHub/cosmos-clip",
+        path: "c:/Users/louis/OneDrive/Documents/GitHub/cosmos-clip",
+        loadCmd: "code c:/Users/louis/OneDrive/Documents/GitHub/cosmos-clip",
         departments: [
             {
                 name: "Core Systems",
@@ -75,7 +102,10 @@ const defaultProjects = [
                 ]
             }
         ],
-        docs: [],
+        docs: [
+            { name: "BACKUP_RESTORE_FIX.md", path: "BACKUP_RESTORE_FIX.md", content: "# Backup Restore Fix\n\nProtocol for restoring encrypted buffers..." },
+            { name: "README.md", path: "README.md", content: "# Cosmos Clip\n\nAdvanced clipboard manager..." }
+        ],
         issues: [
             {
                 id: "fix-001",
@@ -94,56 +124,58 @@ const defaultProjects = [
     {
         id: 2,
         title: "DevControl",
+        monitorUrl: "http://localhost:7777",
+        ports: [
+            { label: "Dashboard", value: 7777 },
+            { label: "API", value: 42424 }
+        ],
         description: "Mission control dashboard for managing development projects with AI-powered optimization and real-time monitoring.",
         status: "Active",
         version: "0.0.0",
         tags: ["React", "Node.js", "Express", "AI", "Groq"],
-        path: "c:/Users/elois/OneDrive/Documents/GitHub/DevControl",
-        monitorUrl: "http://localhost:7777",
+        path: "c:/Users/louis/OneDrive/Documents/GitHub/DevControl",
         departments: [
             {
                 name: "Frontend Layer",
                 description: "React-based user interface components.",
                 modules: [
-                    { name: "Main App", path: "src/App.jsx", description: "Primary dashboard with project cards and view switching." },
-                    { name: "Project Detail", path: "src/components/ProjectDetail.jsx", description: "Detailed project view with AI Strategy tab." },
-                    { name: "Command Center", path: "src/components/MonitorView.jsx", description: "Real-time project monitoring with metrics." },
-                    { name: "Layout System", path: "src/components/Layout.jsx", description: "Header with auto-continue mode toggle." }
+                    { name: "Main App", path: "src/App.jsx", description: "Primary dashboard, project cards." },
+                    { name: "Manager Interface", path: "src/components/ManagerInterface.jsx", description: "Project detail, docs, and control." },
+                    { name: "Layout", path: "src/components/Layout.jsx", description: "Navigation and command palette." }
                 ]
             },
             {
                 name: "Backend API",
                 description: "Express server with project management and AI integration.",
                 modules: [
-                    { name: "Server Core", path: "server/index.js", description: "REST API endpoints and project data management." },
-                    { name: "Launch Handler", path: "server/index.js (/api/launch)", description: "VS Code project launcher." },
-                    { name: "AI Optimizer", path: "server/index.js (/api/optimize)", description: "Groq AI integration for strategy generation." }
-                ]
-            },
-            {
-                name: "AI Integration",
-                description: "Groq-powered project optimization system.",
-                modules: [
-                    { name: "Strategy Engine", path: "server/index.js (optimize endpoint)", description: "LLaMA 3.3 70B model for project analysis." },
-                    { name: "Prompt Engineering", path: "server/index.js", description: "Structured prompts for actionable recommendations." }
+                    { name: "Server Core", path: "server/index.js", description: "REST API endpoints." },
+                    { name: "Auto-Mode", path: "server/index.js", description: "Autopilot state management." }
                 ]
             }
         ],
+        docs: [
+            { name: "implementation_plan.md", path: ".gemini/antigravity/brain/ca3a3ce0-b9ca-4193-b77b-8e78888f8391/implementation_plan.md", content: "# Implementation Plan\n..." },
+            { name: "walkthrough.md", path: ".gemini/antigravity/brain/ca3a3ce0-b9ca-4193-b77b-8e78888f8391/walkthrough.md", content: "# Walkthrough\n..." }
+        ],
+        issues: []
+    },
+    {
+        id: 3,
+        title: "CosmoWhisper",
+        description: "Next-gen voice transcription and command engine.",
+        status: "Active",
+        version: "1.3.2",
+        tags: ["Electron", "React", "AI", "Voice"],
+        path: "c:/Users/louis/OneDrive/Documents/GitHub/CosmoWhisper-App",
+        monitorUrl: "http://localhost:5173",
+        ports: [
+            { label: "Frontend", value: 5173 },
+            { label: "Electron", value: 4242 },
+            { label: "Overlay", value: 8080 }
+        ],
+        departments: [],
         docs: [],
-        issues: [
-            {
-                id: "feature-001",
-                problem: "Auto-Continue Mode",
-                description: "Need ability to automatically proceed with actions without manual approval.",
-                solution: "Implemented toggle in header with localStorage persistence and Ctrl+Shift+P hotkey."
-            },
-            {
-                id: "feature-002",
-                problem: "Command Center Enhancement",
-                description: "Basic monitoring needed real-time metrics and quick actions.",
-                solution: "Added project health indicators, uptime tracking, and quick launch buttons."
-            }
-        ]
+        issues: []
     }
 ];
 
@@ -151,13 +183,18 @@ const defaultProjects = [
 let projects = [];
 try {
     if (fs.existsSync(PROJECTS_FILE)) {
-        const data = fs.readFileSync(PROJECTS_FILE, 'utf-8');
-        projects = JSON.parse(data);
-        console.log(`Loaded ${projects.length} projects from ${PROJECTS_FILE} `);
+        const fileContent = fs.readFileSync(PROJECTS_FILE, 'utf-8');
+        // Simple heuristic to check if file is valid JSON and not empty/corrupted
+        if (fileContent.trim().startsWith('[') || fileContent.trim().startsWith('{')) {
+            projects = JSON.parse(fileContent);
+            console.log(`Loaded ${projects.length} projects from ${PROJECTS_FILE}`);
+        } else {
+            throw new Error("File content does not appear to be valid JSON");
+        }
     } else {
         projects = defaultProjects;
         fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2));
-        console.log(`Created ${PROJECTS_FILE} with default projects`);
+        console.log("Initialized projects.json with defaults");
     }
 } catch (err) {
     console.error('Error loading projects:', err);
@@ -175,6 +212,13 @@ const saveProjects = () => {
 };
 
 // Auto-mode state handled at top
+if (autoModeEnabled) {
+    // Ensure flag is present on startup
+    try {
+        const flagPath = path.join(__dirname, '..', 'scripts', 'AUTOPILOT_ACTIVE.tmp');
+        if (!fs.existsSync(flagPath)) fs.writeFileSync(flagPath, 'ACTIVE');
+    } catch (e) { }
+}
 
 
 // Configure Multer for audio uploads
@@ -207,15 +251,29 @@ app.post('/api/trigger-autopilot', (req, res) => {
         const vbsPath = path.join(__dirname, '..', 'scripts', 'trigger_continue.vbs');
         if (fs.existsSync(vbsPath)) {
             exec(`cscript.exe //Nologo "${vbsPath}"`, (err) => {
-                if (err) console.error("Autopilot pulse failed:", err);
+                if (err) console.error("Autopilot trigger failed:", err);
             });
-            res.json({ success: true, message: "Ghost Finger Pulsed" });
+            res.json({ success: true });
         } else {
             res.status(404).json({ error: "Script not found" });
         }
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
+});
+
+// POST /api/open-explorer - Open folder in Windows Explorer
+app.post('/api/open-explorer', (req, res) => {
+    const { path: dirPath } = req.body;
+    if (!dirPath) return res.status(400).json({ error: 'Path required' });
+
+    exec(`explorer "${dirPath}"`, (err) => {
+        if (err) {
+            console.error('Failed to open explorer:', err);
+            return res.status(500).json({ error: 'Failed to open explorer' });
+        }
+        res.json({ success: true });
+    });
 });
 
 app.use(cors());
@@ -287,6 +345,41 @@ const readDocContent = (projectPath, docPath) => {
     return null;
 };
 
+const scanProjectDocs = (projectPath) => {
+    const docs = [];
+    if (!projectPath || !fs.existsSync(projectPath)) return docs;
+
+    // Common places for documentation
+    const scanDirs = ['', 'docs', 'documentation', 'guides', '.agent/workflows', '.antigravity'];
+
+    try {
+        scanDirs.forEach(subDir => {
+            const fullDir = path.join(projectPath, subDir);
+            if (fs.existsSync(fullDir) && fs.lstatSync(fullDir).isDirectory()) {
+                const files = fs.readdirSync(fullDir);
+                files.forEach(file => {
+                    // Only pick up markdown files, ignore massive files or system files
+                    if (file.toLowerCase().endsWith('.md') && !file.startsWith('.')) {
+                        const relativePath = path.join(subDir, file).replace(/\\/g, '/');
+                        const content = readDocContent(projectPath, relativePath);
+                        if (content && content.length < 500000) { // Safety limit: 0.5MB
+                            docs.push({
+                                name: file,
+                                path: relativePath,
+                                type: subDir === 'docs' ? 'guide' : subDir.includes('workflow') ? 'protocol' : 'doc',
+                                content: content
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    } catch (e) {
+        console.error(`Doc scan failed for ${projectPath}:`, e);
+    }
+    return docs;
+};
+
 // --- Endpoints ---
 
 // GET /api/projects - Returns projects with live data
@@ -294,40 +387,32 @@ app.get('/api/projects', (req, res) => {
     const liveProjects = projects.map(p => {
         const liveP = { ...p };
 
-        // Live Doc Sync for Cosmos Clip (ID 1)
-        if (p.id === 1 && p.path) {
-            liveP.docs = [
-                {
-                    name: "Backups & Restore Fix",
-                    path: "BACKUP_RESTORE_FIX.md",
-                    type: "fix",
-                    content: readDocContent(p.path, "BACKUP_RESTORE_FIX.md")
-                },
-                {
-                    name: "API Reference",
-                    path: "docs/API.md",
-                    type: "api",
-                    content: readDocContent(p.path, "docs/API.md")
-                },
-                {
-                    name: "Widget Reference",
-                    path: "docs/WIDGET_REFERENCE.md",
-                    type: "guide",
-                    content: readDocContent(p.path, "docs/WIDGET_REFERENCE.md")
-                },
-                {
-                    name: "Hotkey Recording",
-                    path: "docs/HOTKEY_RECORDING_REFERENCE.md",
-                    type: "guide",
-                    content: readDocContent(p.path, "docs/HOTKEY_RECORDING_REFERENCE.md")
-                }
-            ].filter(d => d.content !== null); // Only return docs we actually found
+        // Dynamic Doc Sync for all projects
+        if (p.path) {
+            liveP.docs = scanProjectDocs(p.path);
         }
 
         return liveP;
     });
     res.json(liveProjects);
 });
+
+// POST /api/projects/reload - Reload projects from disk
+app.post('/api/projects/reload', (req, res) => {
+    try {
+        if (fs.existsSync(PROJECTS_FILE)) {
+            const fileContent = fs.readFileSync(PROJECTS_FILE, 'utf-8');
+            projects = JSON.parse(fileContent);
+            console.log(`Reloaded ${projects.length} projects from disk`);
+            res.json({ success: true, count: projects.length });
+        } else {
+            res.status(404).json({ error: "projects.json not found" });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // POST /api/launch - Launches VS Code
 app.post('/api/launch', (req, res) => {
@@ -437,7 +522,7 @@ Format your response in markdown with clear sections.`;
 
 // GET /api/artifacts - Get Antigravity artifacts (task.md, walkthrough.md)
 app.get('/api/artifacts', (req, res) => {
-    const artifactsPath = 'C:/Users/elois/.gemini/antigravity/brain/cf75381a-f79a-4ab6-b8cf-5eb968070cbb';
+    const artifactsPath = 'C:/Users/louis/.gemini/antigravity/brain/cf75381a-f79a-4ab6-b8cf-5eb968070cbb';
     const artifacts = {
         task: null,
         walkthrough: null
@@ -569,6 +654,25 @@ app.post('/api/autopilot-session/stop', (req, res) => {
     res.json({ success: true });
 });
 
+const broadcastInstructions = (instructions) => {
+    console.log(`📡 Broadcasting Instructions to ${projects.length} projects...`);
+    let successCount = 0;
+    projects.forEach(project => {
+        try {
+            if (project.path && fs.existsSync(project.path)) {
+                const instructionFile = path.join(project.path, '.antigravity-instructions.md');
+                const content = `### MANAGER INSTRUCTIONS [${new Date().toLocaleString()}]\n\n${instructions}\n\n--- \n*Sent via DevControl Zero-Touch Bridge*`;
+                fs.writeFileSync(instructionFile, content);
+                successCount++;
+            }
+        } catch (err) {
+            console.error(`Failed to sync to ${project.title}:`, err);
+        }
+    });
+    broadcastActivity(`AUTO-SYNC: Instructions pushed to ${successCount} projects`, 'system');
+    return successCount;
+};
+
 // POST /api/sync-instructions - Broadcoast instructions to all project roots
 app.post('/api/sync-instructions', (req, res) => {
     let { instructions } = req.body;
@@ -597,28 +701,8 @@ app.post('/api/sync-instructions', (req, res) => {
         return res.status(400).json({ error: "No instructions provided" });
     }
 
-    console.log(`📡 Broadcasting Instructions to ${projects.length} projects...`);
-    let successCount = 0;
-    let failCount = 0;
-
-    projects.forEach(project => {
-        try {
-            if (project.path && fs.existsSync(project.path)) {
-                const instructionFile = path.join(project.path, '.antigravity-instructions.md');
-                const content = `### MANAGER INSTRUCTIONS [${new Date().toLocaleString()}]\n\n${instructions}\n\n--- \n*Sent via DevControl Sync Bridge*`;
-                fs.writeFileSync(instructionFile, content);
-                successCount++;
-            } else {
-                failCount++;
-            }
-        } catch (err) {
-            console.error(`Failed to sync to ${project.title}:`, err);
-            failCount++;
-        }
-    });
-
-    broadcastActivity(`SYNC: Instructions pushed to ${successCount} projects (${failCount} failed)`, 'system');
-    res.json({ success: true, synced: successCount, failed: failCount });
+    const successCount = broadcastInstructions(instructions);
+    res.json({ success: true, synced: successCount });
 });
 
 // --- Master Backup Endpoints ---
@@ -692,7 +776,7 @@ app.post('/api/projects/create', (req, res) => {
     const { title, subfolder, description, tags, status, version } = req.body;
 
     // User requested specifically to use their GitHub folder
-    const baseDir = 'C:\\Users\\elois\\OneDrive\\Documents\\GitHub';
+    const baseDir = 'C:\\Users\\louis\\OneDrive\\Documents\\GitHub';
     const projectPath = path.join(baseDir, subfolder);
 
     // 1. Create Directory
@@ -742,23 +826,39 @@ app.post('/api/projects/create', (req, res) => {
 });
 app.post('/api/launch-console', (req, res) => {
     const { projectId } = req.body;
-    const project = projects.find(p => p.id === projectId);
+    // Loose equality to handle string/number mismatch
+    const project = projects.find(p => String(p.id) === String(projectId));
 
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (!project) {
+        console.error(`Launch failed: Project ID ${projectId} not found`);
+        return res.status(404).json({ error: 'Project not found' });
+    }
 
     console.log(`Launching project: ${project.title} at ${project.path}`);
 
-    // Action 1: Open Antigravity
-    const antigravityPath = path.join(process.env.LOCALAPPDATA, 'Programs', 'Antigravity', 'Antigravity.exe');
-    exec(`"${antigravityPath}" "${project.path}"`, (error) => {
-        if (error) console.error(`Failed to open Antigravity: ${error}`);
-    });
+    // Action 1: Open Antigravity using robust batch script
+    try {
+        const launcherPath = path.join(__dirname, '..', 'scripts', 'launch_antigravity.bat');
+        const winPath = path.resolve(project.path);
+
+        console.log(`[Launch] Invoking launcher script: ${launcherPath} "${winPath}"`);
+
+        exec(`"${launcherPath}" "${winPath}"`, (error) => {
+            if (error) console.error(`Launcher script error: ${error}`);
+        });
+    } catch (e) {
+        console.error("Failed to invoke launcher:", e);
+    }
 
     // Action 2: Launch Terminal & Run Dev Server
-    // We assume 'npm run dev' is the standard. If 'loadCmd' exists, we could use that,
-    // but the user specifically asked to "open project AND run".
+    // We assume 'npm run dev' is the standard. If 'loadCmd' exists, we could use that.
     const startScript = "npm run dev";
-    const command = `start powershell.exe -NoExit -Command "Set-Location '${project.path}'; Write-Host '🚀 Starting ${project.title}...' -ForegroundColor Cyan; ${startScript}"`;
+    const resolvedPath = path.resolve(project.path);
+
+    // Construct command with robust path handling
+    const command = `start powershell.exe -NoExit -Command "Set-Location -LiteralPath '${resolvedPath}'; Write-Host '🚀 Starting ${project.title}...' -ForegroundColor Cyan; ${startScript}"`;
+
+    console.log(`[Launch] Executing: ${command}`);
 
     exec(command, (error) => {
         if (error) {
@@ -945,6 +1045,10 @@ ${context || 'No context available'}
         const updatedHistory = [...messages, botMsg];
 
         fs.writeFileSync(historyPath, JSON.stringify(updatedHistory, null, 2));
+
+        if (autoModeEnabled) {
+            broadcastInstructions(reply);
+        }
 
         res.json({ reply, id: botMsg.id });
 
@@ -1181,32 +1285,231 @@ app.post('/api/restore-backup', (req, res) => {
     }
 });
 
+// DELETE /api/projects/:id - Unregister or destroy a project
+app.delete('/api/projects/:id', (req, res) => {
+    const { id } = req.params;
+    const { mode, confirmName } = req.body; // mode: 'unregister' or 'destroy'
+
+    const projectIndex = projects.findIndex(p => String(p.id) === String(id));
+    if (projectIndex === -1) return res.status(404).json({ error: 'Project not found' });
+
+    const project = projects[projectIndex];
+
+    if (mode === 'destroy') {
+        if (confirmName !== project.title) {
+            return res.status(400).json({ error: 'Confirmation name mismatch' });
+        }
+
+        try {
+            if (fs.existsSync(project.path)) {
+                fs.rmSync(project.path, { recursive: true, force: true });
+                console.log(`Physically destroyed repository at: ${project.path}`);
+            }
+        } catch (err) {
+            console.error('Failed to destroy physical repo:', err);
+            return res.status(500).json({ error: 'Failed to delete files on disk' });
+        }
+    }
+
+    // Remove from registry
+    projects.splice(projectIndex, 1);
+    saveProjects();
+
+    broadcastActivity(`${mode === 'destroy' ? 'DESTROYED' : 'UNREGISTERED'} project: ${project.title}`, 'system');
+    res.json({ success: true });
+});
+
+// GET /api/projects/:id/secrets - Retrieve secrets for a project (password required)
+// POST /api/verify-master-password - Check if the password is correct for global unlock
+app.post('/api/verify-master-password', (req, res) => {
+    const { password } = req.body;
+    if (password === serverConfig.masterPassword) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ error: "Invalid master password" });
+    }
+});
+
+app.get('/api/projects/:id/secrets', (req, res) => {
+    const { id } = req.params;
+    const { password } = req.query;
+    // ... existing logic
+    const MASTER_PASSWORD = serverConfig.masterPassword;
+
+    const project = projects.find(p => String(p.id) === String(id));
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    if (password !== MASTER_PASSWORD) {
+        return res.status(401).json({ error: 'Invalid master password' });
+    }
+
+    res.json(project.secrets || []);
+});
+
+// POST /api/projects/:id/secrets - Add/Update secrets for a project
+app.post('/api/projects/:id/secrets', (req, res) => {
+    const { id } = req.params;
+    const { password, secrets } = req.body;
+    const MASTER_PASSWORD = serverConfig.masterPassword;
+
+    const projectIndex = projects.findIndex(p => String(p.id) === String(id));
+    if (projectIndex === -1) return res.status(404).json({ error: 'Project not found' });
+
+    if (password !== MASTER_PASSWORD) {
+        return res.status(401).json({ error: 'Invalid master password' });
+    }
+
+    projects[projectIndex].secrets = secrets;
+    saveProjects();
+
+    res.json({ success: true });
+});
+
+// GET /api/config - Get server configuration (e.g. master password)
+app.get('/api/config', (req, res) => {
+    // Only return the password if requested specifically, or return a boolean if it's set
+    res.json({ masterPasswordSet: !!serverConfig.masterPassword });
+});
+
+// POST /api/config - Update server configuration
+app.post('/api/config', (req, res) => {
+    const { masterPassword } = req.body;
+    if (masterPassword) {
+        serverConfig.masterPassword = masterPassword;
+        saveConfig();
+        return res.json({ success: true });
+    }
+    res.status(400).json({ error: 'Invalid configuration data' });
+});
+
 app.get('/api/documentation', async (req, res) => {
     try {
-        const docFiles = [
+        // 1. Get system-level docs (from DevControl root)
+        const systemDocFiles = [
             'IMPLEMENTATION_MASTER_PLAN.md',
             'PROJECT_STATUS.md',
             'AUTOPILOT_DOCUMENTATION.md',
             'THEME_GUIDE.md'
         ];
 
-        const docs = await Promise.all(docFiles.map(async file => {
+        const systemDocs = systemDocFiles.map(file => {
             const filePath = path.join(__dirname, '..', file);
             if (fs.existsSync(filePath)) {
                 return {
                     name: file,
                     content: fs.readFileSync(filePath, 'utf8'),
-                    path: file
+                    path: `SYSTEM/${file}`,
+                    project: 'DevControl'
                 };
             }
             return null;
-        }));
+        }).filter(d => d !== null);
 
-        res.json(docs.filter(d => d !== null));
+        // 2. Aggregate docs from ALL other projects
+        const allProjectDocs = [];
+        projects.forEach(project => {
+            if (project.path) {
+                const projectDocs = scanProjectDocs(project.path);
+                projectDocs.forEach(d => {
+                    allProjectDocs.push({
+                        ...d,
+                        path: `${project.title}/${d.path}`,
+                        project: project.title
+                    });
+                });
+            }
+        });
+
+        res.json([...systemDocs, ...allProjectDocs]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
+// --- Efficiency Suite Endpoints ---
+
+const activityLog = []; // In-memory log for Pulse Feed
+
+const logActivity = (message, project = 'System', type = 'info') => {
+    const entry = {
+        id: uuidv4(),
+        timestamp: new Date().toISOString(),
+        message,
+        project,
+        type
+    };
+    activityLog.unshift(entry);
+    if (activityLog.length > 50) activityLog.pop(); // Keep last 50
+    return entry;
+};
+
+// GET /api/activity-pulse - Get recent activity
+app.get('/api/activity-pulse', (req, res) => {
+    res.json(activityLog);
+});
+
+// POST /api/scan-env - Check status of all project ports
+app.post('/api/scan-env', async (req, res) => {
+    logActivity('Initiated environment scan', 'System', 'action');
+
+    // Simple port checker using net (dynamic import to avoid top-level issues if net isn't standard, though it is in Node)
+    // We'll use a simple fetch check for HTTP services as typically configured in monitorUrl
+
+    const results = await Promise.all(projects.map(async p => {
+        if (!p.monitorUrl) return { id: p.id, status: 'Local' };
+
+        try {
+            // Short timeout fetch to ping
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+            await fetch(p.monitorUrl, { method: 'HEAD', signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            return { id: p.id, status: 'Active' };
+        } catch (e) {
+            return { id: p.id, status: 'Offline' };
+        }
+    }));
+
+    // Update in-memory projects
+    let changed = false;
+    results.forEach(r => {
+        const p = projects.find(proj => proj.id === r.id);
+        if (p && p.status !== r.status) {
+            p.status = r.status;
+            changed = true;
+        }
+    });
+
+    if (changed) saveProjects();
+
+    res.json({ success: true, results });
+});
+
+// POST /api/kill-port - Kill process on a port
+app.post('/api/kill-port', (req, res) => {
+    const { port, projectId } = req.body;
+
+    if (!port) return res.status(400).json({ error: "Port required" });
+
+    const p = projects.find(proj => proj.id === projectId);
+    logActivity(`Terminating process on port ${port}`, p ? p.title : 'System', 'danger');
+
+    // Windows specific kill command
+    const cmd = `Stop-Process -Id (Get-NetTCPConnection -LocalPort ${port}).OwningProcess -Force`;
+
+    exec(`powershell -Command "${cmd}"`, (error, stdout, stderr) => {
+        if (error) {
+            // It might fail if no process is found, which is 'success' in a way (it's gone)
+            console.warn("Kill port warning:", stderr);
+            return res.json({ success: false, error: "Process not found or access denied" });
+        }
+        res.json({ success: true });
+    });
+});
+
+// --- End Efficiency Suite ---
 
 app.listen(PORT, () => {
     console.log(`DevControl Server running on http://localhost:${PORT}`);

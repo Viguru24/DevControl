@@ -2,6 +2,7 @@ import React, { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/index.css'
 import App from './App.jsx'
+import ZeroTouchWidget from './components/ZeroTouchWidget.jsx'
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -37,8 +38,6 @@ class ErrorBoundary extends React.Component {
 }
 
 const isWidget = window.location.search.includes('mode=zero-touch');
-
-import ZeroTouchWidget from './components/ZeroTouchWidget.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

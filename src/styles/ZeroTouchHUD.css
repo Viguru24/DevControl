@@ -1,0 +1,131 @@
+.zero-touch-hud {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 220px;
+    background: rgba(5, 5, 8, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0;
+    font-family: 'JetBrains Mono', monospace;
+    color: #fff;
+    z-index: 9999;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    user-select: none;
+    pointer-events: none;
+    /* Let clicks pass through */
+}
+
+.zero-touch-hud.active {
+    border-color: rgba(0, 243, 255, 0.3);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+}
+
+.hud-header {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    color: #888;
+}
+
+.hud-title {
+    font-weight: 700;
+}
+
+.hud-content {
+    padding: 1rem;
+}
+
+.hud-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.stat-label {
+    color: #666;
+}
+
+.stat-value {
+    font-weight: 600;
+}
+
+.stat-value.cyan {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.stat-value.orange {
+    color: #ff9d00;
+}
+
+.monitor-text {
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+.hud-footer {
+    padding: 0.4rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+}
+
+.safety-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #555;
+}
+
+.safety-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #333;
+}
+
+.safety-dot.green {
+    background: #00ff88;
+    box-shadow: 0 0 5px #00ff88;
+}
+
+.safety-dot.red {
+    background: #ff0044;
+}
+
+.pulse-anim {
+    animation: hud-pulse 2s infinite;
+    color: var(--neon-cyan);
+}
+
+@keyframes hud-pulse {
+    0% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+        text-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    100% {
+        opacity: 0.5;
+    }
+}
